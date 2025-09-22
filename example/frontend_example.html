@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Frontend Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+            display: none;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🎉 High5 Gen Book - AI Book Generator</h1>
+    <p style="color: #666; font-size: 14px;">Create personalized children's books for little Lino with just 1 click! 🚀</p>
+
+    <div class="container">
+        <h3>📝 Generate Book Automatically with AI</h3>
+
+        <div style="margin: 15px 0;">
+            <label for="bookType" style="display: block; margin-bottom: 8px; font-weight: bold;">🎯 Book Type:</label>
+            <input type="text" id="bookType" placeholder="Nhập loại sách (vd: Khoa học viễn tưởng, Phiêu lưu, ...)"
+                   value="Khoa học viễn tưởng - Lino khám phá vũ trụ"
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+
+        <div style="margin: 15px 0;">
+            <label for="characterName" style="display: block; margin-bottom: 8px; font-weight: bold;">👤 Character Name:</label>
+            <input type="text" id="characterName" placeholder="Nhập tên nhân vật chính (vd: Lino, Tùng, ...)"
+                   value="Lino"
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+
+        <div style="margin: 15px 0;">
+            <label for="referenceImage" style="display: block; margin-bottom: 8px; font-weight: bold;">🖼️ Reference Image (URL):</label>
+            <input type="url" id="referenceImage" placeholder="https://example.com/image.jpg"
+                   value="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=600&fit=crop"
+                   style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+        </div>
+
+
+        <div style="margin: 15px 0;">
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">⚙️ Advanced Options:</label>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="showProgress" checked>
+                    <span>Show Progress</span>
+                </label>
+            </div>
+        </div>
+
+        <button onclick="generateBook()" id="generateBtn" style="font-size: 16px; padding: 12px 24px;">🚀 Generate Complete Book with AI</button>
+    </div>
+
+    <div id="status" class="status" style="display: none;"></div>
+
+    <div class="container">
+        <h3>📖 PDF Viewer</h3>
+        <iframe id="pdfViewer" class="pdf-viewer"></iframe>
+
+        <div id="downloadSection" style="display: none; margin-top: 20px;">
+            <button onclick="downloadPDF()" id="downloadBtn">⬇️ Download PDF</button>
+            <span id="fileInfo"></span>
+        </div>
+    </div>
+
+    <script>
+        let currentPdfBlob = null;
+        let currentPdfUrl = null;
+
+        // Function to show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Function to generate book using /create-realistic-book/ endpoint
+        async function generateBook() {
+            const generateBtn = document.getElementById('generateBtn');
+            const originalText = generateBtn.textContent;
+
+            try {
+                // Disable button and show loading
+                generateBtn.disabled = true;
+                generateBtn.textContent = '⏳ Generating book...';
+
+                const bookType = document.getElementById('bookType').value;
+                const characterName = document.getElementById('characterName').value;
+                const referenceImage = document.getElementById('referenceImage').value;
+                const showProgress = document.getElementById('showProgress').checked;
+
+                if (!bookType.trim()) {
+                    showStatus('❌ Please enter a book type!', 'error');
+                    return;
+                }
+
+                if (!characterName.trim()) {
+                    showStatus('❌ Please enter a character name!', 'error');
+                    return;
+                }
+
+                if (!referenceImage.trim()) {
+                    showStatus('❌ Please enter a reference image URL!', 'error');
+                    return;
+                }
+
+                if (showProgress) {
+                    showStatus('🤖 Generating book content with AI...', 'info');
+                }
+
+                const payload = {
+                    type: bookType,
+                    name: characterName,
+                    image: referenceImage
+                };
+
+                console.log('📤 Sending payload to /create-realistic-book/:', payload);
+
+                // Send request to new endpoint
+                const response = await fetch('http://localhost:8000/create-realistic-book/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                // Get information from headers
+                const processingTime = response.headers.get('X-Processing-Time');
+                const pageCount = response.headers.get('X-Page-Count');
+                const fileSize = response.headers.get('X-File-Size');
+                const bookTypeBase64 = response.headers.get('X-Book-Type-Base64');
+
+                // Decode book type from Base64
+                let decodedBookType = bookType;
+                if (bookTypeBase64) {
+                    try {
+                        decodedBookType = atob(bookTypeBase64);
+                    } catch (e) {
+                        console.warn('Cannot decode book type from Base64');
+                    }
+                }
+
+                if (showProgress) {
+                    showStatus('🎨 Creating images and PDF...', 'info');
+                }
+
+                // Receive blob from response
+                const pdfBlob = await response.blob();
+                currentPdfBlob = pdfBlob;
+
+                // Create URL to display
+                currentPdfUrl = URL.createObjectURL(pdfBlob);
+
+                // Display PDF in iframe
+                const pdfViewer = document.getElementById('pdfViewer');
+                pdfViewer.src = currentPdfUrl;
+                pdfViewer.style.display = 'block';
+
+                // Display detailed file information
+                const fileSizeMB = (pdfBlob.size / 1024 / 1024).toFixed(2);
+                document.getElementById('fileInfo').textContent =
+                    `📏 File size: ${fileSizeMB} MB | 📄 Pages: ${pageCount || 'N/A'} | ⏱️ Processing: ${processingTime || 'N/A'}s | 📚 Type: ${decodedBookType}`;
+
+                // Show download button
+                document.getElementById('downloadSection').style.display = 'block';
+
+                showStatus('✅ Complete PDF book generated successfully!', 'success');
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                // Reset button
+                generateBtn.disabled = false;
+                generateBtn.textContent = originalText;
+            }
+        }
+
+
+        // Function to download PDF
+        function downloadPDF() {
+            if (currentPdfBlob && currentPdfUrl) {
+                // Create filename based on character name and book type
+                const bookType = document.getElementById('bookType').value;
+                const characterName = document.getElementById('characterName').value;
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, '');
+                const shortType = bookType.split(' - ')[0].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const cleanName = characterName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const filename = `${cleanName}_book_${shortType}_${timestamp}.pdf`;
+
+                // Create download link
+                const downloadLink = document.createElement('a');
+                downloadLink.href = currentPdfUrl;
+                downloadLink.download = filename;
+                downloadLink.style.display = 'none';
+
+                // Add to DOM and click
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+
+                // Cleanup
+                document.body.removeChild(downloadLink);
+
+                showStatus(`✅ File "${filename}" has been downloaded!`, 'success');
+            } else {
+                showStatus('❌ No file to download!', 'error');
+            }
+        }
+
+        // Cleanup when page unloads
+        window.addEventListener('beforeunload', () => {
+            if (currentPdfUrl) {
+                URL.revokeObjectURL(currentPdfUrl);
+            }
+        });
+    </script>
+</body>
+</html>
