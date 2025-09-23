@@ -47,6 +47,56 @@ High5 Gen Book là một ứng dụng web AI tiên tiến giúp tạo ra những
 
 #### Yêu cầu
 - Docker và Docker Compose đã được cài đặt
+- PostgreSQL database (có thể chạy trong Docker)
+
+### Phương pháp 2: Chạy native với Python
+
+#### Yêu cầu
+- Python 3.13+
+- PostgreSQL database server
+
+#### Các bước cài đặt
+
+1. **Clone repository và cài đặt dependencies**
+   ```bash
+   git clone <repository-url>
+   cd gen-book
+   pip install -r requirements.txt
+   ```
+
+2. **Cấu hình Database**
+
+   Tạo file `.env`:
+   ```bash
+   cp database_env_example.txt .env
+   ```
+
+   Chỉnh sửa file `.env` với thông tin database:
+   ```env
+   DATABASE_URL=postgresql://username:password@localhost:5432/gen_book_db
+   ```
+
+   Tạo database trong PostgreSQL:
+   ```sql
+   CREATE DATABASE gen_book_db;
+   CREATE USER genbook_user WITH PASSWORD 'your_password';
+   GRANT ALL PRIVILEGES ON DATABASE gen_book_db TO genbook_user;
+   ```
+
+3. **Khởi tạo Database**
+   ```bash
+   python src/db/init_db.py
+   ```
+
+4. **Chạy ứng dụng**
+   ```bash
+   python main.py
+   ```
+
+### Phương pháp 1: Chạy với Docker (Khuyến nghị) 🐳
+
+#### Yêu cầu
+- Docker và Docker Compose đã được cài đặt
 
 #### 1. Clone repository
 ```bash
@@ -54,25 +104,45 @@ git clone <repository-url>
 cd gen-book
 ```
 
-#### 2. Chạy với Docker Compose
+#### 2. Cấu hình Database (cho Docker)
+Chỉnh sửa file `docker-compose.yml` để cấu hình PostgreSQL:
+```yaml
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: gen_book_db
+      POSTGRES_USER: genbook_user
+      POSTGRES_PASSWORD: your_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+```
+
+#### 3. Chạy với Docker Compose
 ```bash
 # Cách 1: Sử dụng script tự động (khuyến nghị)
 ./run_docker.sh
 
 # Cách 2: Chạy thủ công
-docker-compose up --build
+docker-compose up --build -d
 ```
 
-#### 3. Truy cập ứng dụng
+#### 4. Khởi tạo Database
+```bash
+# Chạy script khởi tạo database trong container
+docker-compose exec app python src/db/init_db.py
+```
+
+#### 5. Truy cập ứng dụng
 - API sẽ chạy tại: `http://localhost:8000` hoặc `http://127.0.0.1:8000`
 - Mở file `example/frontend_example.html` trong browser để xem giao diện demo
 
-#### 4. Dừng ứng dụng
+#### 6. Dừng ứng dụng
 ```bash
 docker-compose down
 ```
 
-#### 5. Lệnh hữu ích khác
+#### 7. Lệnh hữu ích khác
 ```bash
 # Xem logs
 docker-compose logs -f
@@ -82,94 +152,50 @@ docker-compose restart
 
 # Xây dựng lại image
 docker-compose build --no-cache
+
+# Truy cập database container
+docker-compose exec db psql -U genbook_user -d gen_book_db
 ```
 
-### Phương pháp 2: Chạy trực tiếp với Python
-
-#### 1. Clone repository
+#### Testing Database
 ```bash
-git clone <repository-url>
-cd gen-book
+# Test database connection
+docker-compose exec app python src/db/test_db.py
 ```
-
-#### 2. Tạo virtual environment (khuyến nghị)
-```bash
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# hoặc
-venv\Scripts\activate     # Windows
-```
-
-#### 3. Cài đặt dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### 4. Chạy server
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-#### 5. Mở giao diện
-```bash
-python open_frontend.py
-```
-
-Hoặc mở file `example/frontend_example.html` trực tiếp trong browser.
 
 ## 📖 API Documentation
 
 Server sẽ chạy tại `http://localhost:8000`
 
-### Endpoints chính
+### Database Endpoints (mới)
 
-#### `POST /create-realistic-book/`
-Tạo sách hoàn chỉnh với phong cách realistic.
+Base URL: `/api/v1/db`
 
-**Request Body:**
-```json
-{
-  "type": "Khoa học viễn tưởng - Lino khám phá vũ trụ",
-  "name": "Lino",
-  "image": "https://example.com/reference-image.jpg"
-}
-```
+#### Users
+- `POST /users/` - Tạo user mới
+- `GET /users/` - Lấy danh sách users
+- `POST /auth/login` - Đăng nhập
 
-**Response:** File PDF trực tiếp (StreamingResponse)
+#### Books
+- `POST /books/` - Tạo sách mới
+- `GET /books/` - Lấy danh sách sách
+- `GET /books/{book_id}` - Lấy chi tiết sách
 
-#### `POST /create-cartoon-book/`
-Tạo sách hoàn chỉnh với phong cách cartoon 90s.
+#### Statistics
+- `GET /stats/generation/` - Thống kê tổng quan
+- `GET /health/` - Health check database
 
-**Request Body:** Giống endpoint trên
+### AI Endpoints
 
-#### `POST /gen-script/`
-Chỉ tạo nội dung sách (không có hình ảnh).
+Xem chi tiết tại [`src/ai/README.md`](./src/ai/README.md)
 
-#### `POST /gen-illustration-image/`
-Tạo hình ảnh minh họa từ prompt và ảnh tham khảo.
-
-#### `POST /gen-cartoon-image/`
-Chuyển đổi ảnh thành phong cách cartoon.
-
-#### `POST /create-pdf-book/`
-Tạo PDF từ nội dung và danh sách URL ảnh có sẵn, hỗ trợ background tùy chỉnh.
-
-**Request Body:**
-```json
-{
-  "scripts": ["Trang 1 content...", "Trang 2 content..."],
-  "image_urls": ["https://example.com/image1.jpg", "https://example.com/image2.jpg"],
-  "background_urls": ["https://example.com/bg1.jpg", "https://example.com/bg2.jpg"]  // Tùy chọn
-}
-```
-
-**Features:**
-- 🎨 **Custom Backgrounds**: Thêm background riêng cho mỗi trang
-- 🔤 **Modern Fonts**: Comic Neue, Patrick Hand cho sách trẻ em
-- 📝 **Large Text**: Font size 18pt, dễ đọc cho trẻ
-- 🖊️ **Bold Text Effect**: Chữ dày, rõ ràng với hiệu ứng shadow
-- 🎯 **Auto Text Color**: Tự động chọn màu chữ (đen/trắng) theo độ sáng background
-- 📄 **Professional Layout**: Landscape A4 với spacing tối ưu
+#### Endpoints chính
+- `POST /create-realistic-book/` - Tạo sách hoàn chỉnh phong cách realistic
+- `POST /create-cartoon-book/` - Tạo sách hoàn chỉnh phong cách cartoon
+- `POST /gen-script/` - Tạo nội dung sách
+- `POST /gen-illustration-image/` - Tạo hình ảnh minh họa
+- `POST /gen-cartoon-image/` - Chuyển đổi ảnh thành cartoon
+- `POST /create-pdf-book/` - Tạo PDF với custom backgrounds
 
 ## 🛠️ Kiến trúc hệ thống
 
@@ -177,19 +203,35 @@ Tạo PDF từ nội dung và danh sách URL ảnh có sẵn, hỗ trợ backgro
 📁 gen-book/
 ├── 📄 main.py                 # FastAPI application chính
 ├── 📄 requirements.txt        # Dependencies Python
+├── 📄 database_env_example.txt # Database configuration template
 ├── 📄 Dockerfile             # Docker image configuration
 ├── 📄 docker-compose.yml     # Docker Compose configuration
 ├── 📄 .dockerignore          # Docker ignore patterns
 ├── 📄 run_docker.sh          # Script tự động chạy với Docker
 ├── 📄 open_frontend.py       # Script mở giao diện demo
+├── 📁 src/
+│   ├── 📁 ai/
+│   │   ├── 📁 api/
+│   │   │   └── 📄 ai_routes.py    # AI endpoints
+│   │   └── 📁 services/
+│   │       ├── 📄 llm.py         # AI text generation (OpenAI)
+│   │       ├── 📄 gen_illustration_image.py  # Tạo ảnh minh họa
+│   │       ├── 📄 gen_cartoon_image.py      # Tạo ảnh cartoon
+│   │       ├── 📄 remove_background.py      # Xử lý remove background
+│   │       └── 📄 gen_book.py    # Tạo PDF sách (ReportLab)
+│   └── 📁 db/
+│       ├── 📁 api/
+│       │   └── 📄 db_routes.py   # Database endpoints
+│       ├── 📁 models/
+│       │   ├── 📄 database.py    # SQLAlchemy models
+│       │   └── 📄 schemas.py     # Pydantic schemas
+│       └── 📁 services/
+│           ├── 📄 crud.py        # Database CRUD operations
+│           ├── 📄 database_connection.py  # DB connection management
+│           ├── 📄 init_db.py     # Database initialization
+│           └── 📄 test_db.py     # Database testing
 ├── 📁 assets/
 │   └── 📁 backgrounds/       # Thư mục chứa ảnh background
-├── 📁 models/
-│   ├── 📄 llm.py             # Xử lý AI text generation (OpenAI)
-│   ├── 📄 gen_illustration_image.py  # Tạo ảnh minh họa (Replicate)
-│   ├── 📄 gen_cartoon_image.py      # Tạo ảnh cartoon (Replicate)
-│   ├── 📄 remove_background.py      # Xử lý remove background
-│   └── 📄 gen_book.py        # Tạo PDF sách (ReportLab)
 ├── 📁 example/
 │   └── 📄 frontend_example.html     # Giao diện demo HTML
 ├── 📄 .gitignore            # Git ignore patterns
@@ -199,35 +241,38 @@ Tạo PDF từ nội dung và danh sách URL ảnh có sẵn, hỗ trợ backgro
 ## 🧠 Công nghệ sử dụng
 
 - **Backend**: FastAPI (Python web framework)
-- **AI Text**: OpenAI GPT-4o-mini
-- **AI Images**: Replicate API (Stability AI models)
-- **PDF Generation**: ReportLab
-- **Image Processing**: Pillow (PIL)
+- **Database**: PostgreSQL với SQLAlchemy ORM
+- **Authentication**: PassLib với bcrypt
 - **Frontend Demo**: HTML5 + JavaScript (Vanilla)
+
+### AI & Image Processing
+Xem chi tiết tại [`src/ai/README.md`](./src/ai/README.md)
+
+### Database Operations
+Xem chi tiết tại [`src/db/README.md`](./src/db/README.md)
 
 ## 🔧 Cấu hình
 
-### API Keys
-- **OpenAI API Key**: Đã được cấu hình sẵn trong `models/llm.py`
-- **Replicate API Token**: Cần thiết lập biến môi trường `REPLICATE_API_TOKEN`
+### Environment Variables
+Tạo file `.env` từ template `database_env_example.txt`:
 
-### Models AI sử dụng
-- **Text Generation**: `gpt-4o-mini`
-- **Image Generation**: `stability-ai/sdxl` (qua Replicate)
-- **Cartoon Style**: Custom prompt "Make this a 90s cartoon"
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/gen_book_db
+```
+
+### API Keys & Models
+- **Database**: Xem [`src/db/README.md`](./src/db/README.md)
+- **AI Services**: Xem [`src/ai/README.md`](./src/ai/README.md)
 
 ## 📊 Workflow chi tiết
 
-### Realistic Book Generation:
-1. **Script Generation** → GPT-4o-mini tạo nội dung 3 trang
-2. **Image Generation** → Tạo ảnh minh họa cho từng trang
-3. **PDF Creation** → Kết hợp text và hình thành PDF
+Xem chi tiết workflow AI processing tại [`src/ai/README.md`](./src/ai/README.md)
 
-### Cartoon Book Generation:
-1. **Script Generation** → Giống trên
-2. **Base Cartoon Conversion** → Chuyển ảnh gốc thành cartoon
-3. **Cartoon Illustrations** → Tạo ảnh minh họa cartoon cho từng trang
-4. **PDF Creation** → Tạo PDF với style cartoon
+### Tổng quan quy trình:
+1. **User Authentication** → Đăng nhập/đăng ký (tùy chọn)
+2. **AI Content Generation** → Tạo nội dung và hình ảnh
+3. **Database Logging** → Lưu trữ thông tin và log hoạt động
+4. **PDF Compilation** → Xuất file sách hoàn chỉnh
 
 ## 🎯 Mục tiêu sử dụng
 

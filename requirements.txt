@@ -7,3 +7,9 @@ Pillow>=10.0.0
 requests>=2.31.0
 rembg>=2.0.0
 onnxruntime
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+python-dotenv>=1.0.0
+passlib[bcrypt]>=1.7.0
+email-validator>=2.0.0
