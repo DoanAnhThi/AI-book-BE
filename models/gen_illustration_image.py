@@ -69,11 +69,8 @@ async def gen_illustration_image(
             input_params["image_input"] = [image_url]
 
         # Run the Replicate model asynchronously using thread pool
-        output = await asyncio.to_thread(
-            client.run,
-            "bytedance/seedream-4",
-            input=input_params
-        )
+        loop = asyncio.get_event_loop()
+        output = await loop.run_in_executor(None, client.run, "bytedance/seedream-4", input_params)
 
         # Return the URL of the generated image
         def ensure_utf8_string(text):

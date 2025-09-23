@@ -338,8 +338,9 @@ async def generate_realistic_book(request: BookGenerationRequest):
 
         # Bước 2: Tạo hình ảnh cho từng trang
         scripts = []
-        image_urls = []
+        page_generation_data = []  # Danh sách dữ liệu để tạo ảnh parallel
 
+        # Chuẩn bị dữ liệu cho tất cả các trang
         for page_key, page_data in content.items():
             page_content = page_data.get("page-content", "")
             page_prompt = page_data.get("page-prompt", "")
@@ -357,27 +358,44 @@ async def generate_realistic_book(request: BookGenerationRequest):
                 pass
 
             scripts.append(page_content)
+            page_generation_data.append((page_key, page_prompt))
 
-            # Tạo hình ảnh cho trang này
+        # Function helper để tạo ảnh cho một trang
+        async def generate_single_image(page_key: str, page_prompt: str, image_url: str):
             try:
                 print(f"Generating image for page {page_key}")
                 generated_url = await gen_illustration_image(
                     prompt=page_prompt,
-                    image_url=request.image
+                    image_url=image_url
                 )
 
                 if generated_url:
-                    image_urls.append(generated_url)
                     print(f"Generated image for page {page_key}: {generated_url}")
+                    return generated_url
                 else:
-                    # Nếu không tạo được ảnh, sử dụng ảnh gốc
-                    image_urls.append(request.image)
                     print(f"Using original image for page {page_key}")
+                    return image_url
 
             except Exception as img_error:
                 print(f"Error generating image for page {page_key}: {str(img_error)}")
-                # Sử dụng ảnh gốc nếu có lỗi
-                image_urls.append(request.image)
+                return image_url
+
+        # Tạo danh sách các coroutine tasks để thực thi parallel
+        page_tasks = [
+            generate_single_image(page_key, page_prompt, request.image)
+            for page_key, page_prompt in page_generation_data
+        ]
+
+        # Thực hiện tất cả tasks parallel và chờ kết quả
+        print(f"Starting parallel generation of {len(page_tasks)} images")
+        image_urls = await asyncio.gather(*page_tasks, return_exceptions=True)
+
+        # Xử lý kết quả, thay thế exception bằng fallback image
+        for i, result in enumerate(image_urls):
+            if isinstance(result, Exception):
+                print(f"Exception in parallel task {i}: {str(result)}")
+                image_urls[i] = request.image
+            # Nếu result là URL hợp lệ thì giữ nguyên
 
         # Bước 3: Kiểm tra dữ liệu
         if len(scripts) != len(image_urls):

@@ -40,10 +40,12 @@ async def gen_cartoon_image(
             prompt = str(prompt)
 
         # Run the Replicate model asynchronously using thread pool
-        output = await asyncio.to_thread(
+        loop = asyncio.get_event_loop()
+        output = await loop.run_in_executor(
+            None,
             client.run,
             "black-forest-labs/flux-kontext-pro",
-            input={
+            {
                 "prompt": prompt,
                 "input_image": image_url,
                 "output_format": output_format
