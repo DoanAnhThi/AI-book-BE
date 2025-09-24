@@ -1,4 +1,5 @@
-from sqlalchemy.orm import Session, desc
+from sqlalchemy.orm import Session
+from sqlalchemy import desc
 from typing import List, Optional, Dict, Any
 
 from src.db.order.models.order_models import Order, Payment

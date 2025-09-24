@@ -3,6 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.ai.api.ai_routes import router
 from src.db.api.db_routes import router as db_router
+from src.db.cart.api.cart_routes import router as cart_router
+from src.db.order.api.order_routes import router as order_router
+from src.mail.mail_routes import router as mail_router
 from src.payments.paypal.payment_routes import router as payment_router
 from src.db.common.database_connection import init_database
 
@@ -45,13 +48,19 @@ async def root():
         "endpoints": {
             "AI": "/api/v1/",
             "Database": "/api/v1/db/",
+            "Cart": "/api/v1/",
+            "Order": "/api/v1/",
+            "Mail": "/api/v1/",
             "Payments": "/api/v1/payments/"
         }
     }
 
 # Include routers từ các modules
 app.include_router(router, prefix="/api/v1", tags=["AI"])
-app.include_router(db_router, prefix="/api/v1/db", tags=["Database"])
+app.include_router(db_router, prefix="/api/v1/db", tags=["Users"])
+app.include_router(cart_router, prefix="/api/v1", tags=["Cart"])
+app.include_router(order_router, prefix="/api/v1", tags=["Order"])
+app.include_router(mail_router, prefix="/api/v1", tags=["Mail"])
 app.include_router(payment_router, prefix="/api/v1/payments", tags=["Payments"])
 
 if __name__ == "__main__":
