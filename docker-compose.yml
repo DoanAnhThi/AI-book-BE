@@ -25,6 +25,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
+      - .:/app
       - ./assets:/app/assets:ro
     env_file:
       - .env

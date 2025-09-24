@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Payment Success</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+        }
+        .success-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+        .success-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        .order-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .order-details h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .processing { background: #fff3cd; color: #856404; }
+        .completed { background: #d4edda; color: #155724; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <div class="success-icon">✅</div>
+        <h1>Payment Successful!</h1>
+        <p>Thank you for your purchase. Your payment has been processed successfully.</p>
+
+        <div id="orderDetails" class="order-details" style="display: none;">
+            <h3>Order Details</h3>
+            <div id="orderInfo"></div>
+            <div id="bookGenerationStatus" class="status processing">
+                <strong>🔄 Book Generation Status:</strong> Processing your personalized children's book...
+            </div>
+        </div>
+
+        <div id="loading" class="loading"></div>
+        <p id="statusMessage">Loading order details...</p>
+
+        <div id="actions" style="display: none;">
+            <button onclick="checkBookStatus()">🔄 Check Book Status</button>
+            <button onclick="goHome()">🏠 Go to Homepage</button>
+        </div>
+    </div>
+
+    <script>
+        let orderId = null;
+        let checkInterval = null;
+
+        // Function to get URL parameters
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Function to load order details
+        async function loadOrderDetails() {
+            orderId = getUrlParameter('order_id');
+
+            if (!orderId) {
+                showError('Order ID not found. Please contact support.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/v1/payments/paypal/orders/${orderId}`);
+                const orderData = await response.json();
+
+                if (response.ok && orderData.order) {
+                    displayOrderDetails(orderData);
+
+                    // Start checking book generation status if order is paid
+                    if (orderData.order.status === 'paid') {
+                        startBookStatusChecking();
+                    }
+                } else {
+                    showError('Failed to load order details. Please contact support.');
+                }
+            } catch (error) {
+                console.error('Error loading order details:', error);
+                showError('Network error. Please check your connection and try again.');
+            }
+        }
+
+        // Function to display order details
+        function displayOrderDetails(data) {
+            const order = data.order;
+            const orderInfo = document.getElementById('orderInfo');
+
+            orderInfo.innerHTML = `
+                <p><strong>Order ID:</strong> #${order.id}</p>
+                <p><strong>Customer:</strong> ${order.full_name}</p>
+                <p><strong>Email:</strong> ${order.email}</p>
+                <p><strong>Total Amount:</strong> $${order.total_amount}</p>
+                <p><strong>Status:</strong> <span class="status ${order.status === 'paid' ? 'completed' : 'processing'}">${order.status.toUpperCase()}</span></p>
+                <p><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+            `;
+
+            document.getElementById('orderDetails').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('statusMessage').textContent = 'Order details loaded successfully!';
+            document.getElementById('actions').style.display = 'block';
+        }
+
+        // Function to start checking book generation status
+        function startBookStatusChecking() {
+            const statusDiv = document.getElementById('bookGenerationStatus');
+
+            // Check immediately, then every 10 seconds
+            checkBookStatus();
+            checkInterval = setInterval(checkBookStatus, 10000);
+        }
+
+        // Function to check book generation status
+        async function checkBookStatus() {
+            if (!orderId) return;
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/v1/payments/paypal/orders/${orderId}`);
+                const orderData = await response.json();
+
+                if (response.ok && orderData.book) {
+                    const book = orderData.book;
+                    const statusDiv = document.getElementById('bookGenerationStatus');
+
+                    if (book.is_completed) {
+                        statusDiv.className = 'status completed';
+                        statusDiv.innerHTML = `
+                            <strong>✅ Book Generation Complete!</strong><br>
+                            Your personalized children's book "${book.title}" is ready.<br>
+                            <a href="${book.pdf_url}" target="_blank">📄 Download PDF</a>
+                        `;
+
+                        // Stop checking
+                        if (checkInterval) {
+                            clearInterval(checkInterval);
+                            checkInterval = null;
+                        }
+                    } else {
+                        statusDiv.innerHTML = `
+                            <strong>🔄 Book Generation Status:</strong> ${book.is_completed ? 'Complete' : 'Processing'}...<br>
+                            Title: "${book.title}"<br>
+                            Please wait while we create your personalized story and illustrations.
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking book status:', error);
+            }
+        }
+
+        // Function to go to homepage
+        function goHome() {
+            window.location.href = 'home.html';
+        }
+
+        // Function to show error
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('statusMessage').textContent = message;
+            document.getElementById('statusMessage').style.color = '#dc3545';
+        }
+
+        // Load order details when page loads
+        document.addEventListener('DOMContentLoaded', loadOrderDetails);
+
+        // Cleanup interval when page unloads
+        window.addEventListener('beforeunload', () => {
+            if (checkInterval) {
+                clearInterval(checkInterval);
+            }
+        });
+    </script>
+</body>
+</html>

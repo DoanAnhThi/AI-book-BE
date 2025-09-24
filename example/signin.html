@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Sign In</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="email"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="email"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        button {
+            width: 100%;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .links a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Sign In to High5 Gen Book</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">Welcome back! Please sign in to your account.</p>
+
+        <form id="signinForm" onsubmit="handleSignin(event)">
+            <div class="form-group">
+                <label for="email">📧 Email Address:</label>
+                <input type="email" id="email" placeholder="your@email.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">🔒 Password:</label>
+                <input type="password" id="password" placeholder="Enter your password" required>
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe" style="margin: 0; font-weight: normal;">Remember me</label>
+            </div>
+
+            <button type="submit" id="signinBtn">🚀 Sign In</button>
+        </form>
+
+        <div class="links">
+            <a href="#" onclick="forgotPassword()">Forgot your password?</a><br>
+            <span style="color: #666;">Don't have an account? </span><a href="signup.html">Sign up here</a>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <script>
+        // Function to show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Function to handle sign in
+        async function handleSignin(event) {
+            event.preventDefault();
+
+            const signinBtn = document.getElementById('signinBtn');
+            const originalText = signinBtn.textContent;
+
+            try {
+                // Disable button and show loading
+                signinBtn.disabled = true;
+                signinBtn.textContent = '⏳ Signing in...';
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const rememberMe = document.getElementById('rememberMe').checked;
+
+                if (!email.trim() || !password.trim()) {
+                    showStatus('❌ Please fill in all fields!', 'error');
+                    return;
+                }
+
+                // Simulate API call - replace with actual endpoint
+                showStatus('🔐 Authenticating...', 'info');
+
+                // Mock authentication delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Simulate successful login
+                showStatus('✅ Welcome back! Redirecting...', 'success');
+
+                // Redirect after success
+                setTimeout(() => {
+                    window.location.href = 'frontend_example.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('❌ Sign in error:', error);
+                showStatus(`❌ Sign in failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button
+                signinBtn.disabled = false;
+                signinBtn.textContent = originalText;
+            }
+        }
+
+        // Function for forgot password
+        function forgotPassword() {
+            const email = document.getElementById('email').value;
+            if (!email.trim()) {
+                showStatus('❌ Please enter your email address first!', 'error');
+                return;
+            }
+
+            showStatus('📧 Password reset email sent! Check your inbox.', 'success');
+        }
+
+        // Auto-focus email field
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('email').focus();
+        });
+    </script>
+</body>
+</html>

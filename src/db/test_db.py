@@ -7,9 +7,9 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.db.services.database_connection import test_connection, SessionLocal
-from src.db.services.crud import UserService, BookService
-from src.db.models.schemas import UserCreate, BookCreate
+from src.db.common.database_connection import test_connection, SessionLocal
+from src.db.user.services.user_service import UserService
+from src.db.user.models.user_schemas import UserCreate
 
 def test_basic_operations():
     """Test các operations cơ bản"""
@@ -33,28 +33,17 @@ def test_basic_operations():
         user = UserService.create_user(db, test_user)
         print(f"✅ Created user: {user.username} (ID: {user.id})")
 
-        # Test tạo book
-        test_book = BookCreate(
-            title="Test Book",
-            book_type="Test Type",
-            character_name="Test Character",
-            style="realistic",
-            reference_image_url="https://example.com/test.jpg",
-            user_id=user.id
-        )
-
-        book = BookService.create_book(db, test_book)
-        print(f"✅ Created book: {book.title} (ID: {book.id})")
-
         # Test query
         retrieved_user = UserService.get_user(db, user.id)
         print(f"✅ Retrieved user: {retrieved_user.username}")
 
-        retrieved_book = BookService.get_book(db, book.id)
-        print(f"✅ Retrieved book: {retrieved_book.title}")
+        # Test update user
+        from src.db.user.models.user_schemas import UserUpdate
+        update_data = UserUpdate(full_name="Updated Test User")
+        updated_user = UserService.update_user(db, user.id, update_data)
+        print(f"✅ Updated user: {updated_user.full_name}")
 
         # Cleanup
-        BookService.delete_book(db, book.id)
         UserService.delete_user(db, user.id)
         print("✅ Cleanup completed")
 

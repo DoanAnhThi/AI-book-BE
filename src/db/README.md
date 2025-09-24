@@ -69,9 +69,6 @@ python src/db/init_db.py
 - Lưu trữ thông tin sách đã tạo
 - Liên kết với user và các trang
 
-### BookPage
-- Lưu trữ từng trang của sách
-- Bao gồm content và generated images
 
 ### GenerationLog
 - Log các hoạt động tạo sách
@@ -116,7 +113,7 @@ Base URL: `/api/v1/db`
 ### Dependency Injection
 
 ```python
-from src.db.services.database_connection import get_db
+from src.db.common.database_connection import get_db
 
 @app.get("/example/")
 async def example_endpoint(db: Session = Depends(get_db)):
@@ -127,19 +124,18 @@ async def example_endpoint(db: Session = Depends(get_db)):
 ### CRUD Operations
 
 ```python
-from src.db.services.crud import UserService, BookService
+from src.db.user.services.user_service import UserService
 
 # Tạo user
 user = UserService.create_user(db, user_data)
 
-# Lấy sách của user
-books = BookService.get_books_by_user(db, user_id)
+# Lấy orders của user
+from src.db.order.services.order_service import OrderService
+orders = OrderService.get_orders_by_user(db, user_id)
 
-# Log operation
-GenerationLogService.log_operation(
-    db, "script_gen", "success",
-    user_id=user_id, processing_time=1.5
-)
+# Lấy cart của user
+from src.db.cart.services.cart_service import CartService
+cart_items = CartService.get_user_cart(db, user_id)
 ```
 
 ## Development
@@ -156,7 +152,7 @@ API documentation sẽ có tại: http://localhost:8000/docs
 
 ```python
 # Test database connection
-python -c "from src.db.services.database_connection import test_connection; test_connection()"
+python -c "from src.db.common.database_connection import test_connection; test_connection()"
 ```
 
 ### Migration (sử dụng Alembic nếu cần)

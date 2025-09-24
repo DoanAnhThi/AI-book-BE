@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Payment Cancelled</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+            text-align: center;
+        }
+        .cancel-container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        h1 {
+            color: #ffc107;
+            margin-bottom: 20px;
+        }
+        .cancel-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .secondary-btn {
+            background: #6c757d;
+        }
+        .secondary-btn:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="cancel-container">
+        <div class="cancel-icon">⚠️</div>
+        <h1>Payment Cancelled</h1>
+        <p>Your payment has been cancelled. No charges have been made to your account.</p>
+        <p>If you experienced any issues or changed your mind, you can try again.</p>
+
+        <div style="margin-top: 30px;">
+            <button onclick="retryPayment()">🔄 Try Again</button>
+            <button class="secondary-btn" onclick="goHome()">🏠 Go to Homepage</button>
+        </div>
+    </div>
+
+    <script>
+        // Function to retry payment
+        function retryPayment() {
+            // Redirect back to checkout page
+            window.location.href = 'checkout.html';
+        }
+
+        // Function to go to homepage
+        function goHome() {
+            window.location.href = 'home.html';
+        }
+
+        // Auto-redirect to checkout after 10 seconds
+        setTimeout(() => {
+            const countdown = document.createElement('p');
+            countdown.style.color = '#666';
+            countdown.style.fontSize = '14px';
+            countdown.innerHTML = 'Redirecting to checkout page in <span id="countdown">10</span> seconds...';
+
+            document.querySelector('.cancel-container').appendChild(countdown);
+
+            let count = 10;
+            const timer = setInterval(() => {
+                count--;
+                document.getElementById('countdown').textContent = count;
+
+                if (count <= 0) {
+                    clearInterval(timer);
+                    retryPayment();
+                }
+            }, 1000);
+        }, 2000);
+    </script>
+</body>
+</html>

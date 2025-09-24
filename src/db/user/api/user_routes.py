@@ -1,8 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from typing import List, Optional
-from datetime import datetime
+from typing import List
 
 from src.db.common.database_connection import get_db
 from src.db.user.services.user_service import UserService
@@ -10,7 +8,6 @@ from src.db.user.models.user_schemas import User, UserCreate, UserUpdate
 
 router = APIRouter()
 
-# User routes
 @router.post("/users/", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     """Tạo user mới"""
@@ -67,20 +64,3 @@ async def login(username: str, password: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu không đúng")
     return {"user": user, "message": "Đăng nhập thành công"}
-
-
-
-# Health check
-@router.get("/health/")
-async def health_check(db: Session = Depends(get_db)):
-    """Health check endpoint"""
-    try:
-        # Test database connection
-        db.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "timestamp": datetime.utcnow()
-        }
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")

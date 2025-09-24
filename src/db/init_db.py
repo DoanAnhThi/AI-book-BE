@@ -8,15 +8,15 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.db.services.database_connection import init_database, engine
-from src.db.services.crud import UserService, BookService
-from src.db.models.schemas import UserCreate, BookCreate
+from src.db.common.database_connection import init_database, engine
+from src.db.user.services.user_service import UserService
+from src.db.user.models.user_schemas import UserCreate
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 def create_sample_data():
     """Tạo dữ liệu mẫu để test"""
-    from src.db.services.database_connection import SessionLocal
+    from src.db.common.database_connection import SessionLocal
 
     db = SessionLocal()
     try:
@@ -33,19 +33,6 @@ def create_sample_data():
         if not existing_user:
             user = UserService.create_user(db, sample_user)
             print(f"Created sample user: {user.username}")
-
-            # Tạo book mẫu
-            sample_book = BookCreate(
-                title="Sách Thiếu Nhi Mẫu",
-                book_type="Khoa học viễn tưởng",
-                character_name="Chú Bé Tò Mò",
-                style="realistic",
-                reference_image_url="https://example.com/sample_image.jpg",
-                user_id=user.id
-            )
-
-            book = BookService.create_book(db, sample_book)
-            print(f"Created sample book: {book.title}")
         else:
             print("Sample user already exists")
 

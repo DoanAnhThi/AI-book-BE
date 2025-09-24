@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Checkout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .checkout-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .checkout-form, .order-summary {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-section {
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="email"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .payment-methods {
+            display: grid;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .payment-method {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .payment-method:hover {
+            border-color: #007bff;
+        }
+        .payment-method.selected {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+        .payment-method input[type="radio"] {
+            display: none;
+        }
+        .paypal-logo {
+            width: 100px;
+            height: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        .item-details h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        .item-details p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .item-price {
+            font-weight: bold;
+            color: #333;
+        }
+        .order-total {
+            border-top: 2px solid #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .secure-notice {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .checkout-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🛒 Checkout - High5 Gen Book</h1>
+
+    <div class="checkout-container">
+        <!-- Checkout Form -->
+        <div class="checkout-form">
+            <h2>📋 Billing & Payment Information</h2>
+
+            <form id="checkoutForm" onsubmit="handleCheckout(event)">
+                <div class="form-section">
+                    <h3>👤 Contact Information</h3>
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" placeholder="your@email.com" required>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📍 Billing Address</h3>
+                    <div class="form-group">
+                        <label for="fullName">Full Name:</label>
+                        <input type="text" id="fullName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Street Address:</label>
+                        <input type="text" id="address" placeholder="123 Main Street" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">City:</label>
+                            <input type="text" id="city" placeholder="New York" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="zipCode">ZIP Code:</label>
+                            <input type="text" id="zipCode" placeholder="10001" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country:</label>
+                        <select id="country" required>
+                            <option value="">Select Country</option>
+                            <option value="US">United States</option>
+                            <option value="VN">Vietnam</option>
+                            <option value="CA">Canada</option>
+                            <option value="UK">United Kingdom</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>💳 Payment Method</h3>
+                    <div class="payment-methods">
+                        <label class="payment-method selected" for="paypal">
+                            <input type="radio" id="paypal" name="paymentMethod" value="paypal" checked>
+                            <img src="https://www.paypalobjects.com/webstatic/en_US/i/buttons/PP_logo_h_100x26.png" alt="PayPal" class="paypal-logo">
+                            <div>
+                                <strong>PayPal</strong>
+                                <p style="margin: 0; color: #666; font-size: 14px;">Fast, secure payment</p>
+                            </div>
+                        </label>
+                        <label class="payment-method" for="card">
+                            <input type="radio" id="card" name="paymentMethod" value="card">
+                            <div style="width: 24px; height: 24px; background: #007bff; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">💳</div>
+                            <div>
+                                <strong>Credit/Debit Card</strong>
+                                <p style="margin: 0; color: #666; font-size: 14px;">Visa, MasterCard, Amex</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="secure-notice">
+                    <span>🔒</span>
+                    <span>Your payment information is secure and encrypted</span>
+                </div>
+
+                <button type="submit" id="checkoutBtn">💳 Complete Purchase</button>
+            </form>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+            <h2>📦 Order Summary</h2>
+
+            <div class="order-item">
+                <div class="item-details">
+                    <h4>AI Generated Children's Book</h4>
+                    <p>Khoa học viễn tưởng - Lino khám phá vũ trụ</p>
+                    <p>Character: Lino</p>
+                    <p>Format: PDF (8 pages)</p>
+                </div>
+                <div class="item-price">$9.99</div>
+            </div>
+
+            <div class="order-item">
+                <div class="item-details">
+                    <h4>Processing Fee</h4>
+                    <p>AI generation and image creation</p>
+                </div>
+                <div class="item-price">$2.00</div>
+            </div>
+
+            <div class="order-item order-total">
+                <strong>Total:</strong>
+                <strong>$11.99</strong>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #28a745;">🎁 What you get:</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
+                    <li>Personalized story with your character</li>
+                    <li>8 beautiful illustrations</li>
+                    <li>High-quality PDF download</li>
+                    <li>Instant delivery</li>
+                    <li>Commercial use rights</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <script>
+        // Function to show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto hide after 5 seconds for non-error messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Function to handle payment method selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentMethods = document.querySelectorAll('.payment-method');
+
+            paymentMethods.forEach(method => {
+                method.addEventListener('click', function() {
+                    // Remove selected class from all methods
+                    paymentMethods.forEach(m => m.classList.remove('selected'));
+
+                    // Add selected class to clicked method
+                    this.classList.add('selected');
+
+                    // Check the radio button
+                    const radio = this.querySelector('input[type="radio"]');
+                    radio.checked = true;
+                });
+            });
+
+            // Auto-focus email field
+            document.getElementById('email').focus();
+        });
+
+        // Function to handle checkout
+        async function handleCheckout(event) {
+            event.preventDefault();
+
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            const originalText = checkoutBtn.textContent;
+
+            try {
+                // Disable button and show loading
+                checkoutBtn.disabled = true;
+                checkoutBtn.textContent = '⏳ Processing payment...';
+
+                const email = document.getElementById('email').value;
+                const fullName = document.getElementById('fullName').value;
+                const address = document.getElementById('address').value;
+                const city = document.getElementById('city').value;
+                const zipCode = document.getElementById('zipCode').value;
+                const country = document.getElementById('country').value;
+                const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+
+                // Validate required fields
+                if (!email.trim() || !fullName.trim() || !address.trim() || !city.trim() || !zipCode.trim() || !country) {
+                    showStatus('❌ Please fill in all required fields!', 'error');
+                    return;
+                }
+
+                // Show processing status
+                showStatus('🔐 Creating checkout session...', 'info');
+
+                // Prepare checkout data
+                const checkoutData = {
+                    email: email.trim(),
+                    full_name: fullName.trim(),
+                    address: address.trim(),
+                    city: city.trim(),
+                    zip_code: zipCode.trim(),
+                    country: country,
+                    payment_method: paymentMethod
+                };
+
+                // Call backend API to create checkout
+                const response = await fetch('http://localhost:8000/api/v1/payments/paypal/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(checkoutData)
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    showStatus(`❌ ${result.message}`, 'error');
+                    return;
+                }
+
+                if (paymentMethod === 'paypal' && result.paypal_approval_url) {
+                    showStatus('🔄 Redirecting to PayPal...', 'info');
+
+                    // Redirect to PayPal for approval
+                    setTimeout(() => {
+                        window.location.href = result.paypal_approval_url;
+                    }, 1000);
+                } else {
+                    showStatus('✅ Payment successful! Your book is being generated...', 'success');
+
+                    // Redirect to success page
+                    setTimeout(() => {
+                        window.location.href = `success.html?order_id=${result.order.id}`;
+                    }, 2000);
+                }
+
+            } catch (error) {
+                console.error('❌ Checkout error:', error);
+                showStatus(`❌ Payment failed: ${error.message}`, 'error');
+            } finally {
+                // Reset button
+                checkoutBtn.disabled = false;
+                checkoutBtn.textContent = originalText;
+            }
+        }
+    </script>
+</body>
+</html>
