@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ebook đã sẵn sàng - High5 Gen Book</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #ffffff;
+            margin: 20px;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 10px;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #2196F3;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #2196F3;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        .book-details {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #2196F3;
+        }
+        .book-details h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .detail-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 120px;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .highlight {
+            color: #2196F3;
+            font-weight: bold;
+        }
+        .download-section {
+            background-color: #e3f2fd;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+            border: 2px solid #2196F3;
+        }
+        .download-button {
+            display: inline-block;
+            background-color: #2196F3;
+            color: white;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 18px;
+            margin: 15px 0;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+        }
+        .download-button:hover {
+            background-color: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(33, 150, 243, 0.4);
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .features {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .features h4 {
+            color: #333;
+            margin-top: 0;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+        }
+        .feature-icon {
+            color: #4CAF50;
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            color: #2196F3;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .support-info {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📚 High5 Gen Book</div>
+            <div class="success-icon">📖</div>
+            <h1>Ebook của bạn đã sẵn sàng!</h1>
+            <p class="subtitle">Sách điện tử cá nhân hóa dành riêng cho bạn</p>
+        </div>
+
+        <div class="book-details">
+            <h3>📚 Thông tin sách</h3>
+            <div class="detail-item">
+                <span class="detail-label">Tên sách:</span>
+                <span class="detail-value highlight">{{ book_title }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Mã đơn hàng:</span>
+                <span class="detail-value">{{ order_id }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Định dạng:</span>
+                <span class="detail-value">PDF (tương thích với tất cả thiết bị)</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Thời gian tạo:</span>
+                <span class="detail-value">{{ created_at }}</span>
+            </div>
+        </div>
+
+        <div class="download-section">
+            <h3 style="margin-top: 0; color: #1976D2;">🎉 Tải sách ngay!</h3>
+            <p style="margin-bottom: 20px; font-size: 16px;">
+                Click vào nút bên dưới để tải sách điện tử của bạn
+            </p>
+            <a href="{{ ebook_url }}" class="download-button">
+                📥 Tải Ebook Ngay
+            </a>
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+                File sẽ được tải tự động về thiết bị của bạn
+            </p>
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ Lưu ý quan trọng:</strong><br>
+            • Link tải sách có hiệu lực trong <strong>30 ngày</strong> kể từ ngày tạo<br>
+            • Vui lòng tải và lưu trữ sách ở nơi an toàn<br>
+            • Nếu link hết hạn, bạn có thể liên hệ bộ phận hỗ trợ để được cấp lại
+        </div>
+
+        <div class="features">
+            <h4>✨ Đặc điểm nổi bật của cuốn sách</h4>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Nội dung được cá nhân hóa</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Hình ảnh minh họa chất lượng cao</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Định dạng PDF chuyên nghiệp</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Tương thích mọi thiết bị</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Không giới hạn số lần đọc</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✓</span>
+                    <span>Bảo mật thông tin cá nhân</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="support-info">
+            <h4 style="margin-top: 0; color: #2E7D32;">💬 Cần hỗ trợ?</h4>
+            <p>Nếu bạn gặp bất kỳ vấn đề nào khi tải sách hoặc có câu hỏi về sản phẩm, đừng ngần ngại liên hệ với chúng tôi:</p>
+            <p>📧 Email: support@high5genbook.com<br>
+            📱 Hotline: 1900-xxxx<br>
+            💬 Chat trực tiếp trên website</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <p><strong>Cảm ơn bạn đã chọn High5 Gen Book!</strong></p>
+            <p>Chúng tôi hy vọng cuốn sách sẽ mang lại những trải nghiệm tuyệt vời cho bạn.</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Trân trọng,</strong></p>
+            <p>Đội ngũ High5 Gen Book</p>
+            <p>Tạo nên những câu chuyện độc đáo cho cuộc sống của bạn</p>
+
+            <div class="social-links">
+                <a href="#">Facebook</a> |
+                <a href="#">Instagram</a> |
+                <a href="#">Website</a>
+            </div>
+
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                © 2024 High5 Gen Book. Tất cả quyền được bảo lưu.<br>
+                Email này được gửi tự động, vui lòng không trả lời trực tiếp.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

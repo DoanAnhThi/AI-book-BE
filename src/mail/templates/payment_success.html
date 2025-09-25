@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán thành công - High5 Gen Book</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: #ffffff;
+            margin: 20px;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+        .success-icon {
+            font-size: 48px;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        .order-details {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .order-details h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .detail-item {
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 140px;
+        }
+        .detail-value {
+            color: #333;
+        }
+        .highlight {
+            color: #4CAF50;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .message {
+            background-color: #e8f5e8;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            color: #4CAF50;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📚 High5 Gen Book</div>
+            <div class="success-icon">✅</div>
+            <h1>Chúc mừng! Thanh toán thành công</h1>
+            <p class="subtitle">Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi</p>
+        </div>
+
+        <div class="message">
+            <p>Đơn hàng của bạn đã được xử lý thành công. Chúng tôi sẽ bắt đầu tạo sách điện tử cá nhân hóa cho bạn ngay bây giờ.</p>
+        </div>
+
+        <div class="order-details">
+            <h3>📋 Thông tin đơn hàng</h3>
+            <div class="detail-item">
+                <span class="detail-label">Mã đơn hàng:</span>
+                <span class="detail-value highlight">{{ order_id }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Tổng tiền:</span>
+                <span class="detail-value highlight">{{ total_amount }} VND</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Trạng thái:</span>
+                <span class="detail-value">{{ status }}</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-label">Thời gian:</span>
+                <span class="detail-value">{{ order_date }}</span>
+            </div>
+        </div>
+
+        <div class="message">
+            <h4>🔄 Tiếp theo sẽ xảy ra gì?</h4>
+            <ul>
+                <li>Chúng tôi sẽ tạo sách điện tử với nội dung được cá nhân hóa dành riêng cho bạn</li>
+                <li>Quy trình tạo sách thường mất 15-30 phút</li>
+                <li>Bạn sẽ nhận được email chứa link tải sách ngay khi hoàn thành</li>
+                <li>Link tải sách có hiệu lực trong 30 ngày</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center;">
+            <p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi:</p>
+            <p>📧 Email: support@high5genbook.com</p>
+            <p>📱 Hotline: 1900-xxxx</p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Trân trọng,</strong></p>
+            <p>Đội ngũ High5 Gen Book</p>
+            <p>Tạo nên những cuốn sách độc đáo cho từng cá nhân</p>
+
+            <div class="social-links">
+                <a href="#">Facebook</a> |
+                <a href="#">Instagram</a> |
+                <a href="#">Website</a>
+            </div>
+
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">
+                © 2024 High5 Gen Book. Tất cả quyền được bảo lưu.<br>
+                Email này được gửi tự động, vui lòng không trả lời trực tiếp.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
