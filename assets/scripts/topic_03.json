@@ -1,0 +1,17 @@
+{
+  "title": "Những Người Bạn Tốt Của {character_name}",
+  "pages": [
+    {
+      "page_content": "{character_name} là một cậu bé thân thiện và luôn sẵn sàng giúp đỡ mọi người. Mỗi sáng, {character_name} đi học cùng với những người bạn thân thiết. Hôm nay, {character_name} quyết định tổ chức một buổi chơi đùa vui vẻ để gắn kết tình bạn giữa các bạn trong lớp.",
+      "page_prompt": "Friendly illustration of {character_name}, a kind boy with a big smile, walking to school with friends, carrying a backpack, happy and social children's book style, colorful and warm"
+    },
+    {
+      "page_content": "Trong giờ nghỉ trưa, {character_name} và các bạn chơi trò chơi đuổi bắt vui nhộn. {character_name} luôn đảm bảo rằng mọi người đều được tham gia và không ai bị bỏ rơi. Khi một bạn nhỏ ngã xuống, {character_name} nhanh chóng chạy đến đỡ bạn dậy và an ủi. Tình bạn đích thực là chia sẻ niềm vui và giúp đỡ nhau.",
+      "page_prompt": "Scene of {character_name} and friends playing tag at school, {character_name} helping a friend who fell down, showing kindness and friendship, playful and heartwarming children's illustration"
+    },
+    {
+      "page_content": "Buổi chiều, {character_name} về nhà với trái tim ấm áp. Cậu bé nhận ra rằng tình bạn là món quà quý giá nhất trong cuộc sống. {character_name} quyết định sẽ luôn là một người bạn tốt, luôn lắng nghe và quan tâm đến cảm xúc của người khác. Một ngày mới sẽ bắt đầu với những người bạn thân yêu.",
+      "page_prompt": "Evening scene of {character_name} walking home smiling, thinking about friendship, with heartwarming illustrations of friends together, peaceful and loving children's book style"
+    }
+  ]
+}

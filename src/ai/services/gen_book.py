@@ -1,7 +1,9 @@
 import os
 import io
 import base64
-from typing import List, Optional
+import re
+import json
+from typing import List, Optional, Dict, Any
 
 import requests
 from PIL import Image
@@ -146,30 +148,154 @@ def _get_optimal_text_colors(brightness: float) -> tuple:
     return text_color, shadow_color
 
 
-def get_background_urls(num_pages: int) -> List[str]:
+def _resolve_background_directory(topic: str = "topic_01", allow_fallback: bool = True) -> str:
     """
-    Load background images from assets/backgrounds/topic_01 and return file paths.
+    Resolve background directory path based on topic name. Accepts variations such as
+    "topic 1", "topic_01", "Topic01". Raises ValueError if no matching directory found.
+
+    Args:
+        topic: Topic name to resolve
+
+    Returns:
+        Path to the background directory
+
+    Raises:
+        ValueError: If no matching background directory is found
+    """
+    if not topic:
+        if allow_fallback:
+            topic = "topic_01"  # Default fallback
+        else:
+            raise ValueError("Topic cannot be empty")
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # /app/src/ai/services
+    ai_dir = os.path.dirname(current_dir)                   # /app/src/ai
+    src_dir = os.path.dirname(ai_dir)                       # /app/src
+    project_root = os.path.dirname(src_dir)                 # /app
+    backgrounds_root = os.path.join(project_root, "assets", "backgrounds")
+
+    if not os.path.isdir(backgrounds_root):
+        raise ValueError(f"Backgrounds root directory {backgrounds_root} does not exist")
+
+    candidate_dirs = []
+
+    raw_topic = topic.strip()
+    lower_topic = raw_topic.lower()
+    normalized = lower_topic.replace("-", "_")
+    normalized = re.sub(r"\s+", "_", normalized)
+
+    candidate_dirs.extend([
+        raw_topic,
+        raw_topic.replace(" ", "_"),
+        lower_topic,
+        normalized,
+    ])
+
+    digit_match = re.findall(r"\d+", lower_topic)
+    if digit_match:
+        try:
+            number = int(digit_match[0])
+            candidate_dirs.append(f"topic_{number:02d}")
+            candidate_dirs.append(f"topic_{number}")
+        except ValueError:
+            pass
+
+    # Add default fallback if not already included and fallback is allowed
+    if allow_fallback and "topic_01" not in candidate_dirs:
+        candidate_dirs.append("topic_01")
+
+    # Preserve order but remove duplicates
+    seen = set()
+    ordered_candidates = []
+    for name in candidate_dirs:
+        if name and name not in seen:
+            seen.add(name)
+            ordered_candidates.append(name)
+
+    for dir_name in ordered_candidates:
+        candidate_path = os.path.join(backgrounds_root, dir_name)
+        if os.path.isdir(candidate_path):
+            print(f"✓ Found background directory: {dir_name}")
+            return candidate_path
+
+    # List available directories for error message
+    try:
+        available_dirs = [d for d in os.listdir(backgrounds_root)
+                         if os.path.isdir(os.path.join(backgrounds_root, d))]
+    except OSError:
+        available_dirs = []
+
+    raise ValueError(
+        f"No background directory found for topic '{topic}'. "
+        f"Checked directories: {ordered_candidates}. "
+        f"Available directories: {available_dirs}"
+    )
+
+
+def load_script_from_file(topic: str, character_name: str) -> Dict[str, Any]:
+    """
+    Load script template from assets/scripts/{topic}.json and replace character_name placeholder.
+
+    Args:
+        topic: Topic name (e.g., "topic_01")
+        character_name: Character name to replace in the script
+
+    Returns:
+        Dict containing title and pages with replaced placeholders
+
+    Raises:
+        ValueError: If script file doesn't exist or is invalid
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # /app/src/ai/services
+    ai_dir = os.path.dirname(current_dir)                   # /app/src/ai
+    src_dir = os.path.dirname(ai_dir)                       # /app/src
+    project_root = os.path.dirname(src_dir)                 # /app
+
+    script_file = os.path.join(project_root, "assets", "scripts", f"{topic}.json")
+
+    if not os.path.isfile(script_file):
+        raise ValueError(f"Script file not found: {script_file}")
+
+    try:
+        with open(script_file, 'r', encoding='utf-8') as f:
+            script_data = json.load(f)
+
+        # Replace character_name placeholder in title and page content/prompts
+        title = script_data.get('title', '').replace('{character_name}', character_name)
+
+        pages = []
+        for page in script_data.get('pages', []):
+            replaced_page = {
+                'page_content': page.get('page_content', '').replace('{character_name}', character_name),
+                'page_prompt': page.get('page_prompt', '').replace('{character_name}', character_name)
+            }
+            pages.append(replaced_page)
+
+        return {
+            'title': title,
+            'pages': pages
+        }
+
+    except (json.JSONDecodeError, KeyError) as e:
+        raise ValueError(f"Invalid script file format: {e}")
+
+
+def get_background_urls(num_pages: int, topic: str = "topic_01", allow_fallback: bool = True) -> List[str]:
+    """
+    Load background images from assets/backgrounds/{topic} and return file paths.
     Cycles through available backgrounds if there are more pages than backgrounds.
 
     Args:
         num_pages: Number of pages needed
+        topic: Topic name to find background directory
 
     Returns:
         List of file paths for backgrounds
+
+    Raises:
+        ValueError: If topic background directory doesn't exist or has no images
     """
-    # Get the project root directory (parent of models directory)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    background_dir = os.path.join(project_root, "assets", "backgrounds", "topic_01")
-
-    print(f"DEBUG: Current dir: {current_dir}")
-    print(f"DEBUG: Project root: {project_root}")
-    print(f"DEBUG: Background dir: {background_dir}")
-    print(f"DEBUG: Background dir exists: {os.path.exists(background_dir)}")
-
-    if not os.path.exists(background_dir):
-        print(f"Warning: Background directory {background_dir} does not exist")
-        return []
+    background_dir = _resolve_background_directory(topic, allow_fallback)
 
     # Get all image files
     image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
@@ -179,8 +305,7 @@ def get_background_urls(num_pages: int) -> List[str]:
     ]
 
     if not background_files:
-        print(f"Warning: No background images found in {background_dir}")
-        return []
+        raise ValueError(f"No background images found in {background_dir} for topic '{topic}'")
 
     # Sort files for consistent ordering
     background_files.sort()
@@ -194,7 +319,7 @@ def get_background_urls(num_pages: int) -> List[str]:
 
         # Just return the file path - PIL can handle file paths directly
         background_urls.append(bg_path)
-        print(f"✓ Loaded background: {bg_file}")
+        print(f"✓ Loaded background: {bg_file} for topic '{topic}'")
 
     return background_urls
 
@@ -392,7 +517,14 @@ def create_pdf_book(image_urls: List[str], scripts: List[str], output_filename: 
     return output_path
 
 
-async def create_pdf_book_bytes(image_urls: List[str], scripts: List[str], font_path: Optional[str] = None) -> bytes:
+async def create_pdf_book_bytes(
+    image_urls: List[str],
+    scripts: List[str],
+    font_path: Optional[str] = None,
+    topic: str = "topic_01",
+    background_urls: Optional[List[str]] = None,
+    allow_fallback: bool = True
+) -> bytes:
     """
     Tạo file PDF và trả về dưới dạng bytes để có thể trả về trực tiếp qua API.
     Background sẽ tự động được load từ thư mục assets/backgrounds/topic_01.
@@ -431,10 +563,15 @@ async def create_pdf_book_bytes(image_urls: List[str], scripts: List[str], font_
             # Sử dụng ảnh gốc nếu có lỗi
             processed_image_urls.append(img_url)
 
-    # Load background images
-    print(f"DEBUG: Loading backgrounds for {len(scripts)} pages...")
-    background_urls = get_background_urls(len(scripts))
-    print(f"DEBUG: Loaded {len(background_urls)} background URLs")
+    # Load background images (required for each topic)
+    if background_urls is None:
+        print(f"Loading backgrounds for {len(scripts)} pages (topic={topic})...")
+        background_urls = get_background_urls(len(scripts), topic, allow_fallback)
+        print(f"✓ Loaded {len(background_urls)} background URLs for topic '{topic}'")
+    else:
+        print(
+            f"Using provided background list with {len(background_urls)} items for topic={topic}"
+        )
 
     # Chuẩn bị font hiện đại
     font_name = _register_unicode_font(font_path)

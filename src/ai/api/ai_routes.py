@@ -1,18 +1,57 @@
 import time
 import io
 import os
+import json
 import base64
+import binascii
 import requests
 import asyncio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any, Optional
 from src.ai.services.llm import gen_script  # Import hàm từ services
+from src.ai.services.llm_gen_prompt import gen_prompt
 from src.ai.services.gen_illustration_image import gen_illustration_image  # Import hàm xử lý image
 from src.ai.services.gen_cartoon_image import gen_cartoon_image  # Import hàm tạo cartoon image
-from src.ai.services.gen_book import create_pdf_book_bytes  # Import hàm tạo PDF (tự động remove background)
+from src.ai.services.gen_book import create_pdf_book_bytes, get_background_urls
+from src.ai.services.merge_PDF_book import merge_pdf_books
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
+# Pydantic models cho multi-book endpoint
+class BookInput(BaseModel):
+    topic: str
+    image: str
+    main_character: str
+
+
+class MultiBookRequest(BaseModel):
+    books: List[BookInput]
+
+
+class GenPromptRequest(BaseModel):
+    scripts: List[str]
+    topic: Optional[str] = None
+    main_character: Optional[str] = None
+    illustration_style: Optional[str] = None
+
+
+class GenPromptResponse(BaseModel):
+    page_prompts: List[str]
+    processing_time: float
+    model_used: Optional[str]
+    success: bool
+    error: Optional[str] = None
+
+
+class MergePdfRequest(BaseModel):
+    pdfs: List[str]
+    output_filename: Optional[str] = None
+
+
+class MergePdfResponse(BaseModel):
+    merged_pdf_base64: str
+    success: bool
+    message: str
 
 # Pydantic models cho gen_script endpoint
 class GenScriptRequest(BaseModel):
@@ -598,4 +637,254 @@ async def generate_cartoon_book(request: BookGenerationRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Lỗi khi tạo sách cartoon: {error_msg}"
+        )
+
+
+# Route tạo prompt từ scripts
+@router.post("/gen-prompt/", response_model=GenPromptResponse)
+async def generate_prompts(request: GenPromptRequest):
+    """
+    Endpoint tạo illustration prompts từ danh sách scripts.
+
+    Request body:
+    - scripts: Danh sách nội dung trang
+    - topic: Chủ đề sách (tùy chọn)
+    - main_character: Tên nhân vật chính (tùy chọn)
+    - illustration_style: Phong cách vẽ (tùy chọn)
+
+    Response: GenPromptResponse với danh sách prompts
+    """
+    start_time = time.time()
+
+    try:
+        result = await gen_prompt(
+            scripts=request.scripts,
+            topic=request.topic,
+            main_character=request.main_character,
+            illustration_style=request.illustration_style
+        )
+
+        processing_time = time.time() - start_time
+
+        return GenPromptResponse(
+            page_prompts=result["page_prompts"],
+            processing_time=result["processing_time"],
+            model_used=result["model_used"],
+            success=result["success"],
+            error=result.get("error")
+        )
+
+    except Exception as e:
+        processing_time = time.time() - start_time
+        return GenPromptResponse(
+            page_prompts=[],
+            processing_time=processing_time,
+            model_used=None,
+            success=False,
+            error=str(e)
+        )
+
+
+# Route merge PDFs
+@router.post("/merge-pdf/", response_model=MergePdfResponse)
+async def merge_pdfs_endpoint(request: MergePdfRequest):
+    """
+    Endpoint merge nhiều PDF thành một PDF duy nhất.
+
+    Request body:
+    - pdfs: Danh sách base64 strings của các PDF
+    - output_filename: Tên file output (tùy chọn)
+
+    Response: MergePdfResponse với base64 của PDF đã merge
+    """
+    start_time = time.time()
+
+    try:
+        # Decode base64 PDFs to bytes
+        pdf_bytes_list = []
+        for pdf_base64 in request.pdfs:
+            try:
+                pdf_bytes = base64.b64decode(pdf_base64)
+                pdf_bytes_list.append(pdf_bytes)
+            except (ValueError, binascii.Error) as decode_error:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid base64 PDF data: {str(decode_error)}"
+                )
+
+        # Merge PDFs
+        merged_bytes = await merge_pdf_books(pdf_bytes_list, request.output_filename)
+
+        # Encode merged PDF to base64
+        merged_base64 = base64.b64encode(merged_bytes).decode('utf-8')
+
+        processing_time = time.time() - start_time
+
+        return MergePdfResponse(
+            merged_pdf_base64=merged_base64,
+            success=True,
+            message=f"Merged {len(pdf_bytes_list)} PDFs successfully in {processing_time:.2f}s"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        processing_time = time.time() - start_time
+        return MergePdfResponse(
+            merged_pdf_base64="",
+            success=False,
+            message=f"Error merging PDFs: {str(e)}"
+        )
+
+
+# Route tạo multi-book từ payload có sẵn
+@router.post("/multi-book/")
+async def generate_multi_book(request: MultiBookRequest):
+    """
+    Endpoint tạo nhiều cuốn sách từ payload có sẵn, sau đó merge thành một PDF tổng.
+    Script được load từ file assets/scripts/{topic}.json, background từ assets/backgrounds/{topic}/.
+
+    Request body:
+    - books: Danh sách các book với topic, image, main_character
+      (script được load tự động từ file theo topic, style đã có sẵn trong script)
+
+    Response: StreamingResponse với file PDF tổng đã merge
+    """
+    start_time = time.time()
+    all_pdf_bytes = []
+
+    try:
+        # Validate all topics and scripts before processing
+        print("🚀 Starting multi-book generation...")
+        print(f"📋 Processing {len(request.books)} book(s)")
+        print("🔍 Validating topics and scripts...")
+
+        for book_idx, book in enumerate(request.books, start=1):
+            print(f"  📂 Checking book {book_idx}: topic='{book.topic}', character='{book.main_character}'")
+            try:
+                # Validate background directory exists
+                print(f"    🎨 Checking background directory for topic '{book.topic}'...")
+                from src.ai.services.gen_book import _resolve_background_directory
+                background_dir = _resolve_background_directory(book.topic, allow_fallback=False)
+                print(f"    ✅ Background directory found: {os.path.basename(background_dir)}")
+
+                # Validate script file exists
+                print(f"    📖 Checking script file for topic '{book.topic}'...")
+                from src.ai.services.gen_book import load_script_from_file
+                script_data = load_script_from_file(book.topic, book.main_character)  # Test load
+                print(f"    ✅ Script file loaded: {len(script_data['pages'])} pages")
+
+                print(f"✓ Book {book_idx} validation completed")
+            except ValueError as validation_error:
+                print(f"❌ Validation failed for book {book_idx}: {str(validation_error)}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid configuration for book {book_idx}: {str(validation_error)}"
+                )
+
+        print("✅ All validations passed, starting processing...")
+
+        for book_idx, book in enumerate(request.books, start=1):
+            print(f"\n📖 Processing book {book_idx}/{len(request.books)}: topic='{book.topic}', character='{book.main_character}'")
+            book_start_time = time.time()
+
+            # Bước 1: Load script từ file và tạo prompts
+            print(f"  🔄 Step 1/3: Loading script from file and preparing prompts...")
+            try:
+                from src.ai.services.gen_book import load_script_from_file
+                script_data = load_script_from_file(book.topic, book.main_character)
+                scripts = [page['page_content'] for page in script_data['pages']]
+                page_prompts = [page['page_prompt'] for page in script_data['pages']]
+                print(f"  ✅ Script loaded: {len(scripts)} pages with prompts ready")
+            except ValueError as script_error:
+                print(f"  ❌ Failed to load script for book {book_idx}: {script_error}")
+                continue
+
+            # Bước 2: Tạo illustrations song song
+            print(f"  🎨 Step 2/3: Generating {len(page_prompts)} illustrations...")
+            illustration_start = time.time()
+
+            illustration_tasks = []
+            for idx, prompt in enumerate(page_prompts):
+                print(f"    📸 Starting illustration {idx + 1}/{len(page_prompts)}...")
+                illustration_tasks.append(gen_illustration_image(
+                    prompt=prompt,
+                    image_url=book.image
+                ))
+
+            image_urls = await asyncio.gather(*illustration_tasks, return_exceptions=True)
+            illustration_time = time.time() - illustration_start
+
+            # Xử lý exceptions
+            success_count = 0
+            for i, result in enumerate(image_urls):
+                if isinstance(result, Exception):
+                    print(f"    ⚠️ Illustration {i + 1} failed: {str(result)[:100]}...")
+                    image_urls[i] = book.image
+                else:
+                    success_count += 1
+
+            print(f"  ✅ Illustrations completed: {success_count}/{len(image_urls)} successful ({illustration_time:.1f}s)")
+
+            # Bước 3: Tạo PDF cho cuốn sách này
+            print(f"  📄 Step 3/3: Creating PDF for book {book_idx}...")
+            pdf_start = time.time()
+
+            pdf_bytes = await create_pdf_book_bytes(
+                image_urls=image_urls,
+                scripts=scripts,  # Use loaded scripts from file
+                topic=book.topic,  # Required parameter - will validate background exists
+                allow_fallback=False  # No fallback for multi-book - each topic must exist
+            )
+
+            pdf_time = time.time() - pdf_start
+            all_pdf_bytes.append(pdf_bytes)
+            book_time = time.time() - book_start_time
+            print(f"  ✅ PDF created: {len(pdf_bytes)} bytes ({pdf_time:.1f}s)")
+            print(f"  🎉 Book {book_idx} completed in {book_time:.1f}s")
+
+        if not all_pdf_bytes:
+            raise HTTPException(
+                status_code=500,
+                detail="Không thể tạo được cuốn sách nào"
+            )
+
+        # Bước 4: Merge tất cả PDFs
+        print(f"\n🔗 Step 4: Merging {len(all_pdf_bytes)} PDFs into final book...")
+        merge_start = time.time()
+
+        merged_bytes = await merge_pdf_books(all_pdf_bytes)
+
+        merge_time = time.time() - merge_start
+        processing_time = time.time() - start_time
+
+        print(f"✅ PDF merge completed: {len(merged_bytes)} bytes ({merge_time:.1f}s)")
+        print(f"🎊 Multi-book generation completed in {processing_time:.1f}s total")
+
+        # Trả về file PDF tổng
+        def generate_pdf():
+            yield merged_bytes
+
+        response = StreamingResponse(
+            generate_pdf(),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=multi_book_{int(time.time())}.pdf",
+                "X-Processing-Time": f"{processing_time:.2f}",
+                "X-Book-Count": str(len(request.books)),
+                "X-File-Size": str(len(merged_bytes)),
+                "X-Total-Pages": "unknown"  # Có thể tính sau nếu cần
+            }
+        )
+
+        return response
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        processing_time = time.time() - start_time
+        error_msg = str(e).encode('utf-8').decode('utf-8')
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tạo multi-book: {error_msg}"
         )

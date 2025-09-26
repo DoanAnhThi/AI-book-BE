@@ -1,0 +1,17 @@
+{
+  "title": "Chuyến Du Hành Vũ Trụ Của {character_name}",
+  "pages": [
+    {
+      "page_content": "{character_name} là một cậu bé mơ mộng luôn nhìn lên bầu trời và tưởng tượng về những vì sao. Mỗi đêm, {character_name} nằm trên sân thượng nhà mình và đếm những ngôi sao lấp lánh. Hôm nay, {character_name} quyết định chế tạo một chiếc phi thuyền nhỏ từ những vật liệu đơn giản để khám phá vũ trụ bí ẩn.",
+      "page_prompt": "A curious boy {character_name} looking up at the starry night sky from his rooftop, dreaming about space, with a small homemade rocket beside him, adventurous and imaginative children's book illustration"
+    },
+    {
+      "page_content": "Chiếc phi thuyền của {character_name} bay vút lên bầu trời xanh. {character_name} nhìn thấy Trái Đất từ trên cao và cảm thấy thật nhỏ bé nhưng cũng thật vĩ đại. Cậu bé gặp gỡ những chú chim bay lượn và những đám mây trắng xóa. {character_name} reo lên: 'Vũ trụ thật rộng lớn và tuyệt đẹp!'",
+      "page_prompt": "Illustration of {character_name} flying in his rocket ship through the sky, seeing Earth from above, birds flying around, fluffy clouds, exciting space adventure style for children"
+    },
+    {
+      "page_content": "Sau chuyến đi, {character_name} trở về Trái Đất với nhiều bài học quý báu. Cậu bé nhận ra rằng việc khám phá không chỉ là đi xa mà còn là quan sát và học hỏi từ những điều xung quanh. {character_name} quyết định sẽ tiếp tục những cuộc phiêu lưu khoa học để khám phá thế giới.",
+      "page_prompt": "Scene showing {character_name} landing back on Earth, looking thoughtful and inspired, with science books and telescope around him, educational and encouraging children's illustration"
+    }
+  ]
+}
