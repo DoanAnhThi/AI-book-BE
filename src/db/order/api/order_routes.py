@@ -75,7 +75,7 @@ async def get_payment(payment_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Payment không tồn tại")
     return db_payment
 
-@router.get("/payments/paypal/{paypal_payment_id}", response_model=Payment)
+@router.get("/payments/paypal/id/{paypal_payment_id}", response_model=Payment)
 async def get_payment_by_paypal_id(paypal_payment_id: str, db: Session = Depends(get_db)):
     """Lấy payment theo PayPal payment ID"""
     db_payment = PaymentService.get_payment_by_paypal_id(db, paypal_payment_id)

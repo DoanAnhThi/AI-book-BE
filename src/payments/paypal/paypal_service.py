@@ -117,7 +117,25 @@ class PayPalService:
                     "message": "Payment not found"
                 }
 
-            # Thực hiện thanh toán
+            # Check payment state - nếu đã approved/completed thì không cần execute lại
+            if payment.state in ['approved', 'completed']:
+                # Lấy transaction ID từ related resources
+                transaction_id = None
+                if hasattr(payment, 'transactions') and payment.transactions:
+                    transaction = payment.transactions[0]
+                    if hasattr(transaction, 'related_resources') and transaction.related_resources:
+                        sale = transaction.related_resources[0].sale
+                        if sale:
+                            transaction_id = sale.id
+
+                return {
+                    "success": True,
+                    "payment": payment,
+                    "transaction_id": transaction_id,
+                    "message": f"Payment already {payment.state}"
+                }
+
+            # Thực hiện thanh toán nếu chưa completed
             if payment.execute({"payer_id": payer_id}):
                 return {
                     "success": True,
@@ -242,6 +260,112 @@ class PayPalService:
                 if sale:
                     return sale.id
         return None
+
+    def create_paypal_order(self, order: Order, db: Session = None) -> Dict[str, Any]:
+        """
+        Tạo PayPal order cho client-side payment
+
+        Args:
+            order: Order object
+            db: Database session
+
+        Returns:
+            Dict chứa thông tin PayPal order
+        """
+        try:
+            import paypalrestsdk
+
+            # Tạo PayPal order
+            paypal_order = paypalrestsdk.Order({
+                "intent": "CAPTURE",
+                "purchase_units": [{
+                    "reference_id": f"order_{order.id}",
+                    "amount": {
+                        "currency_code": order.currency,
+                        "value": str(order.total_amount)
+                    },
+                    "description": f"Order #{order.id} - {order.full_name}"
+                }],
+                "application_context": {
+                    "return_url": success_url,  # Backend success API endpoint
+                    "cancel_url": cancel_url    # Backend cancel API endpoint
+                }
+            })
+
+            if paypal_order.create():
+                return {
+                    "success": True,
+                    "paypal_order_id": paypal_order.id,
+                    "order": paypal_order
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": paypal_order.error,
+                    "message": "Failed to create PayPal order"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Exception occurred while creating PayPal order"
+            }
+
+    def capture_paypal_payment(self, paypal_order_id: str, db: Session = None) -> Dict[str, Any]:
+        """
+        Capture PayPal payment sau khi user approve
+
+        Args:
+            paypal_order_id: PayPal order ID
+            db: Database session
+
+        Returns:
+            Dict chứa kết quả capture
+        """
+        try:
+            import paypalrestsdk
+
+            # Lấy order từ PayPal
+            paypal_order = paypalrestsdk.Order.find(paypal_order_id)
+
+            if not paypal_order:
+                return {
+                    "success": False,
+                    "message": "PayPal order not found"
+                }
+
+            # Capture payment
+            capture_result = paypal_order.capture()
+
+            if capture_result.success():
+                # Lấy transaction ID từ capture result
+                transaction_id = None
+                if hasattr(capture_result, 'purchase_units') and capture_result.purchase_units:
+                    purchase_unit = capture_result.purchase_units[0]
+                    if hasattr(purchase_unit, 'payments') and purchase_unit.payments:
+                        captures = purchase_unit.payments.captures
+                        if captures and len(captures) > 0:
+                            transaction_id = captures[0].id
+
+                return {
+                    "success": True,
+                    "capture": capture_result,
+                    "transaction_id": transaction_id
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": capture_result.error,
+                    "message": "Failed to capture PayPal payment"
+                }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Exception occurred while capturing PayPal payment"
+            }
 
 # Singleton instance
 paypal_service = PayPalService()

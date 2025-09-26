@@ -8,9 +8,13 @@ from src.db.common.database_connection import get_db
 from src.db.order.models.order_models import Payment
 from src.db.order.models.order_schemas import (
     CheckoutRequest, CheckoutResponse,
-    PayPalExecuteRequest, PayPalExecuteResponse
+    PayPalExecuteRequest, PayPalExecuteResponse,
+    CreateOrderRequest, CreateOrderResponse,
+    CreatePayPalOrderRequest, CreatePayPalOrderResponse,
+    CapturePaymentRequest, CapturePaymentResponse
 )
 from .payment_service import payment_service
+from .paypal_service import paypal_service
 
 router = APIRouter()
 
@@ -52,8 +56,8 @@ async def create_checkout(
 
 @router.get("/success")
 async def paypal_success(
-    paymentId: str = Query(..., alias="paymentId"),
-    PayerID: str = Query(..., alias="PayerID"),
+    paymentId: str = Query(None, alias="paymentId"),
+    PayerID: str = Query(None, alias="PayerID"),
     db: Session = Depends(get_db)
 ):
     """
@@ -67,6 +71,9 @@ async def paypal_success(
     Returns:
         Redirect to success page hoặc JSON response
     """
+    if not paymentId or not PayerID:
+        raise HTTPException(status_code=400, detail="Missing paymentId or PayerID")
+
     try:
         result = payment_service.process_paypal_success(
             payment_id=paymentId,
@@ -75,9 +82,13 @@ async def paypal_success(
         )
 
         if result.success:
-            # Redirect về trang thành công với thông tin đơn hàng
-            success_url = f"http://localhost:3000/checkout/success?order_id={result.order.id}"
-            return RedirectResponse(url=success_url)
+            # Trả về JSON response với thông tin đơn hàng
+            return {
+                "success": True,
+                "message": "Payment completed successfully",
+                "order": result.order,
+                "payment": result.payment
+            }
         else:
             # Redirect về trang lỗi
             error_url = f"http://localhost:3000/checkout/error?message={result.message}"
@@ -250,3 +261,160 @@ async def get_order_details(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get order details: {str(e)}")
+
+# Client-side PayPal endpoints
+@router.post("/create-order", response_model=CreateOrderResponse)
+async def create_order(
+    request: CreateOrderRequest,
+    user_id: int = 1,  # Trong thực tế sẽ lấy từ authentication
+    db: Session = Depends(get_db)
+):
+    """
+    Tạo order trong database (cho client-side PayPal flow)
+
+    Args:
+        request: Create order request data
+        user_id: User ID (tạm thời hardcode, sau này dùng auth)
+        db: Database session
+
+    Returns:
+        CreateOrderResponse với order_id
+    """
+    try:
+        order = payment_service.create_order(
+            CheckoutRequest(**request.dict()),
+            user_id,
+            db
+        )
+
+        return CreateOrderResponse(
+            order_id=order.id,
+            message="Order created successfully",
+            success=True
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create order: {str(e)}")
+
+@router.post("/create-paypal-order", response_model=CreatePayPalOrderResponse)
+async def create_paypal_order(
+    request: CreatePayPalOrderRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Tạo PayPal order cho client-side payment
+
+    Args:
+        request: Create PayPal order request
+        db: Database session
+
+    Returns:
+        CreatePayPalOrderResponse với paypal_order_id
+    """
+    try:
+        # Lấy order từ database
+        order = payment_service.get_order_by_id(request.order_id, db)
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        # Tạo PayPal order sử dụng PayPal SDK
+        paypal_result = paypal_service.create_paypal_order(order, db)
+
+        if paypal_result["success"]:
+            # Tạo payment record trong DB
+            payment = payment_service.create_payment_record(
+                order_id=order.id,
+                paypal_payment_id=paypal_result["paypal_order_id"],
+                amount=order.total_amount,
+                status="created",
+                paypal_response={"order": str(paypal_result["order"])},
+                db=db
+            )
+
+            return CreatePayPalOrderResponse(
+                paypal_order_id=paypal_result["paypal_order_id"],
+                message="PayPal order created successfully",
+                success=True
+            )
+        else:
+            raise HTTPException(status_code=400, detail=paypal_result.get("message", "Failed to create PayPal order"))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create PayPal order: {str(e)}")
+
+@router.post("/capture-payment", response_model=CapturePaymentResponse)
+async def capture_payment(
+    request: CapturePaymentRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Capture payment sau khi user approve (client-side flow)
+
+    Args:
+        request: Capture payment request
+        db: Database session
+
+    Returns:
+        CapturePaymentResponse
+    """
+    try:
+        # Capture payment với PayPal
+        paypal_result = paypal_service.capture_paypal_payment(
+            paypal_order_id=request.order_id,
+            db=db
+        )
+
+        if paypal_result["success"]:
+            # Tìm payment record trong DB
+            payment = db.query(Payment).filter(
+                Payment.paypal_payment_id == request.order_id
+            ).first()
+
+            if payment:
+                # Update payment record
+                payment.paypal_payer_id = request.payer_id
+                payment.paypal_transaction_id = paypal_result.get("transaction_id")
+                payment.status = "approved"
+                payment.paypal_response = json.dumps({"capture": str(paypal_result["capture"])})
+                db.commit()
+
+                # Update order status
+                payment_service.update_order_status(payment.order_id, "paid", db)
+
+                return CapturePaymentResponse(
+                    order_id=payment.order_id,
+                    payment_id=payment.id,
+                    transaction_id=paypal_result.get("transaction_id"),
+                    message="Payment captured successfully",
+                    success=True
+                )
+            else:
+                raise HTTPException(status_code=404, detail="Payment record not found")
+        else:
+            raise HTTPException(status_code=400, detail=paypal_result.get("message", "Failed to capture payment"))
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to capture payment: {str(e)}")
+
+@router.get("/client-config")
+async def get_paypal_client_config():
+    """
+    Trả về PayPal client configuration cho frontend
+
+    Returns:
+        Dict chứa client_id
+    """
+    try:
+        import os
+        client_id = os.getenv("PAYPAL_CLIENT_ID", "")
+
+        if not client_id:
+            raise HTTPException(status_code=500, detail="PayPal client ID not configured")
+
+        return {
+            "client_id": client_id,
+            "environment": "sandbox" if os.getenv("PAYPAL_MODE", "sandbox") == "sandbox" else "production"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get PayPal config: {str(e)}")

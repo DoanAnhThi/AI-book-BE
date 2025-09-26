@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High5 Gen Book - Client-Side PayPal Checkout</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .checkout-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .checkout-form, .order-summary {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .form-section {
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="email"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.3);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .paypal-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 30px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            background: #f8f9ff;
+        }
+        .paypal-section h3 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+        #paypal-button-container {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        .item-details h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        .item-details p {
+            margin: 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .item-price {
+            font-weight: bold;
+            color: #333;
+        }
+        .order-total {
+            border-top: 2px solid #333;
+            padding-top: 15px;
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        @media (max-width: 768px) {
+            .checkout-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🛒 Client-Side PayPal Checkout - High5 Gen Book</h1>
+
+    <div class="checkout-container">
+        <!-- Checkout Form -->
+        <div class="checkout-form">
+            <h2>📋 Billing Information</h2>
+
+            <form id="checkoutForm" onsubmit="handleCheckout(event)">
+                <div class="form-section">
+                    <h3>👤 Contact Information</h3>
+                    <div class="form-group">
+                        <label for="email">Email Address:</label>
+                        <input type="email" id="email" placeholder="your@email.com" required>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📍 Billing Address</h3>
+                    <div class="form-group">
+                        <label for="fullName">Full Name:</label>
+                        <input type="text" id="fullName" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Street Address:</label>
+                        <input type="text" id="address" placeholder="123 Main Street" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="city">City:</label>
+                            <input type="text" id="city" placeholder="New York" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="zipCode">ZIP Code:</label>
+                            <input type="text" id="zipCode" placeholder="10001" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="country">Country:</label>
+                        <select id="country" required>
+                            <option value="">Select Country</option>
+                            <option value="US">United States</option>
+                            <option value="VN">Vietnam</option>
+                            <option value="CA">Canada</option>
+                            <option value="UK">United Kingdom</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="paypal-section">
+                    <h3>💳 PayPal Payment</h3>
+                    <p>Click the PayPal button below to complete your purchase securely.</p>
+
+                    <!-- PayPal Button Container -->
+                    <div id="paypal-button-container"></div>
+
+                    <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                        🔒 Your payment information is secure and encrypted
+                    </p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+            <h2>📦 Order Summary</h2>
+
+            <div class="order-item">
+                <div class="item-details">
+                    <h4>AI Generated Children's Book</h4>
+                    <p>Khoa học viễn tưởng - Lino khám phá vũ trụ</p>
+                    <p>Character: Lino</p>
+                    <p>Format: PDF (8 pages)</p>
+                </div>
+                <div class="item-price">$9.99</div>
+            </div>
+
+            <div class="order-item">
+                <div class="item-details">
+                    <h4>Processing Fee</h4>
+                    <p>AI generation and image creation</p>
+                </div>
+                <div class="item-price">$2.00</div>
+            </div>
+
+            <div class="order-item order-total">
+                <strong>Total:</strong>
+                <strong>$11.99</strong>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #28a745;">🎁 What you get:</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
+                    <li>Personalized story with your character</li>
+                    <li>8 beautiful illustrations</li>
+                    <li>High-quality PDF download</li>
+                    <li>Instant delivery</li>
+                    <li>Commercial use rights</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <!-- PayPal SDK will be loaded dynamically -->
+    <script>
+        // Function to show status
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto hide after 5 seconds for non-error messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Function to handle checkout (client-side PayPal)
+        async function handleCheckout(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('fullName').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const zipCode = document.getElementById('zipCode').value;
+            const country = document.getElementById('country').value;
+
+            // Validate required fields
+            if (!email.trim() || !fullName.trim() || !address.trim() || !city.trim() || !zipCode.trim() || !country) {
+                showStatus('❌ Please fill in all required fields!', 'error');
+                return;
+            }
+
+            showStatus('🔐 Preparing PayPal payment...', 'info');
+
+            try {
+                // Create order data
+                const checkoutData = {
+                    email: email.trim(),
+                    full_name: fullName.trim(),
+                    address: address.trim(),
+                    city: city.trim(),
+                    zip_code: zipCode.trim(),
+                    country: country,
+                    payment_method: 'paypal'
+                };
+
+                // Create PayPal order via backend
+                const response = await fetch('http://localhost:8000/api/v1/payments/paypal/create-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(checkoutData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || 'Failed to create order');
+                }
+
+                // Store order ID for later use
+                window.currentOrderId = result.order_id;
+
+                showStatus('✅ PayPal order created. Click PayPal button to proceed.', 'success');
+
+            } catch (error) {
+                console.error('❌ Checkout error:', error);
+                showStatus(`❌ Failed to prepare payment: ${error.message}`, 'error');
+            }
+        }
+
+
+        // Initialize PayPal when SDK is loaded
+        function initializePayPal() {
+            console.log('Initializing PayPal buttons...');
+            paypal.Buttons({
+                    // Create Order
+                    createOrder: function(data, actions) {
+                        if (!window.currentOrderId) {
+                            throw new Error('Please fill in the form and submit first');
+                        }
+
+                        showStatus('🔄 Creating PayPal order...', 'info');
+
+                        return fetch('http://localhost:8000/api/v1/payments/paypal/create-paypal-order', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                order_id: window.currentOrderId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(orderData => {
+                            if (orderData.success) {
+                                showStatus('✅ PayPal order created successfully!', 'success');
+                                return orderData.paypal_order_id;
+                            } else {
+                                throw new Error(orderData.message || 'Failed to create PayPal order');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Create order error:', error);
+                            showStatus(`❌ ${error.message}`, 'error');
+                            throw error;
+                        });
+                    },
+
+                    // On Approve (Payment successful)
+                    onApprove: function(data, actions) {
+                        showStatus('🔄 Processing payment...', 'info');
+
+                        return fetch('http://localhost:8000/api/v1/payments/paypal/capture-payment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                order_id: data.orderID,
+                                payer_id: data.payerID
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(captureData => {
+                            if (captureData.success) {
+                                showStatus('✅ Payment successful! Redirecting...', 'success');
+
+                                // Redirect to success page
+                                setTimeout(() => {
+                                    window.location.href = `success.html?order_id=${captureData.order_id}`;
+                                }, 2000);
+                            } else {
+                                showStatus(`❌ Payment failed: ${captureData.message}`, 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Capture error:', error);
+                            showStatus(`❌ Payment processing failed: ${error.message}`, 'error');
+                        });
+                    },
+
+                    // On Error
+                    onError: function(err) {
+                        console.error('PayPal error:', err);
+                        showStatus('❌ PayPal payment failed. Please try again.', 'error');
+                    },
+
+                    // On Cancel
+                    onCancel: function(data) {
+                        showStatus('ℹ️ Payment cancelled by user.', 'info');
+                    }
+                }).render('#paypal-button-container');
+        }
+
+        // Load PayPal SDK dynamically with CLIENT_ID from server
+        function loadPayPalSDK() {
+            console.log('Loading PayPal client config from server...');
+
+            fetch('http://localhost:8000/api/v1/payments/paypal/client-config')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(config => {
+                    console.log('PayPal config received:', config);
+
+                    if (!config.client_id) {
+                        throw new Error('Client ID not found in config');
+                    }
+
+                    // Load PayPal SDK with client ID from server
+                    const script = document.createElement('script');
+                    script.src = `https://www.paypal.com/sdk/js?client-id=${config.client_id}&currency=USD&components=buttons`;
+
+                    script.onload = function() {
+                        console.log('PayPal SDK loaded successfully from server config');
+                        if (typeof paypal !== 'undefined') {
+                            console.log('PayPal object available, initializing buttons...');
+                            initializePayPal();
+                        } else {
+                            console.error('PayPal object not found after SDK load');
+                            showStatus('❌ PayPal SDK loaded but paypal object not available', 'error');
+                        }
+                    };
+
+                    script.onerror = function() {
+                        console.error('Failed to load PayPal SDK from server config');
+                        showStatus('❌ Failed to load PayPal payment system', 'error');
+                    };
+
+                    document.head.appendChild(script);
+                })
+                .catch(error => {
+                    console.error('Failed to load PayPal config:', error);
+                    showStatus(`❌ Failed to load PayPal configuration: ${error.message}`, 'error');
+                });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('email').focus();
+            loadPayPalSDK();
+        });
+    </script>
+</body>
+</html>

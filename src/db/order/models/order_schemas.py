@@ -86,7 +86,7 @@ class CheckoutRequest(BaseModel):
     payment_method: str = "paypal"
 
 class CheckoutResponse(BaseModel):
-    order: Order
+    order: Optional[Order] = None
     paypal_approval_url: Optional[str] = None
     message: str
     success: bool
@@ -96,7 +96,41 @@ class PayPalExecuteRequest(BaseModel):
     payer_id: str
 
 class PayPalExecuteResponse(BaseModel):
-    payment: Payment
-    order: Order
+    payment: Optional[Payment] = None
+    order: Optional[Order] = None
+    message: str
+    success: bool
+
+# Client-side PayPal schemas
+class CreateOrderRequest(BaseModel):
+    email: EmailStr
+    full_name: str
+    address: str
+    city: str
+    zip_code: str
+    country: str
+    payment_method: str = "paypal"
+
+class CreateOrderResponse(BaseModel):
+    order_id: int
+    message: str
+    success: bool
+
+class CreatePayPalOrderRequest(BaseModel):
+    order_id: int
+
+class CreatePayPalOrderResponse(BaseModel):
+    paypal_order_id: str
+    message: str
+    success: bool
+
+class CapturePaymentRequest(BaseModel):
+    order_id: str  # PayPal order ID
+    payer_id: str
+
+class CapturePaymentResponse(BaseModel):
+    order_id: int  # Internal order ID
+    payment_id: int
+    transaction_id: str
     message: str
     success: bool

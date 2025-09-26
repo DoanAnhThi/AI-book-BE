@@ -61,7 +61,7 @@ app.include_router(db_router, prefix="/api/v1/db", tags=["Users"])
 app.include_router(cart_router, prefix="/api/v1", tags=["Cart"])
 app.include_router(order_router, prefix="/api/v1", tags=["Order"])
 app.include_router(mail_router, prefix="/api/v1", tags=["Mail"])
-app.include_router(payment_router, prefix="/api/v1/payments", tags=["Payments"])
+app.include_router(payment_router, prefix="/api/v1/payments/paypal", tags=["Payments"])
 
 if __name__ == "__main__":
     uvicorn.run(
