@@ -148,13 +148,13 @@ def _get_optimal_text_colors(brightness: float) -> tuple:
     return text_color, shadow_color
 
 
-def _resolve_background_directory(topic: str = "topic_01", allow_fallback: bool = True) -> str:
+def _resolve_background_directory(story: str = "story_01", allow_fallback: bool = True) -> str:
     """
-    Resolve background directory path based on topic name. Accepts variations such as
-    "topic 1", "topic_01", "Topic01". Raises ValueError if no matching directory found.
+    Resolve background directory path based on story name. Accepts variations such as
+    "story 1", "story_01", "Story01". Raises ValueError if no matching directory found.
 
     Args:
-        topic: Topic name to resolve
+        story: Story name to resolve
 
     Returns:
         Path to the background directory
@@ -162,11 +162,11 @@ def _resolve_background_directory(topic: str = "topic_01", allow_fallback: bool 
     Raises:
         ValueError: If no matching background directory is found
     """
-    if not topic:
+    if not story:
         if allow_fallback:
-            topic = "topic_01"  # Default fallback
+            story = "story_01"  # Default fallback
         else:
-            raise ValueError("Topic cannot be empty")
+            raise ValueError("Story cannot be empty")
 
     current_dir = os.path.dirname(os.path.abspath(__file__))  # /app/src/ai/services
     ai_dir = os.path.dirname(current_dir)                   # /app/src/ai
@@ -179,30 +179,30 @@ def _resolve_background_directory(topic: str = "topic_01", allow_fallback: bool 
 
     candidate_dirs = []
 
-    raw_topic = topic.strip()
-    lower_topic = raw_topic.lower()
-    normalized = lower_topic.replace("-", "_")
+    raw_story = story.strip()
+    lower_story = raw_story.lower()
+    normalized = lower_story.replace("-", "_")
     normalized = re.sub(r"\s+", "_", normalized)
 
     candidate_dirs.extend([
-        raw_topic,
-        raw_topic.replace(" ", "_"),
-        lower_topic,
+        raw_story,
+        raw_story.replace(" ", "_"),
+        lower_story,
         normalized,
     ])
 
-    digit_match = re.findall(r"\d+", lower_topic)
+    digit_match = re.findall(r"\d+", lower_story)
     if digit_match:
         try:
             number = int(digit_match[0])
-            candidate_dirs.append(f"topic_{number:02d}")
-            candidate_dirs.append(f"topic_{number}")
+            candidate_dirs.append(f"story_{number:02d}")
+            candidate_dirs.append(f"story_{number}")
         except ValueError:
             pass
 
     # Add default fallback if not already included and fallback is allowed
-    if allow_fallback and "topic_01" not in candidate_dirs:
-        candidate_dirs.append("topic_01")
+    if allow_fallback and "story_01" not in candidate_dirs:
+        candidate_dirs.append("story_01")
 
     # Preserve order but remove duplicates
     seen = set()
@@ -226,18 +226,18 @@ def _resolve_background_directory(topic: str = "topic_01", allow_fallback: bool 
         available_dirs = []
 
     raise ValueError(
-        f"No background directory found for topic '{topic}'. "
+        f"No background directory found for story '{story}'. "
         f"Checked directories: {ordered_candidates}. "
         f"Available directories: {available_dirs}"
     )
 
 
-def load_script_from_file(topic: str, character_name: str) -> Dict[str, Any]:
+def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
     """
-    Load script template from assets/scripts/{topic}.json and replace character_name placeholder.
+    Load script template from assets/scripts/{story}.json and replace character_name placeholder.
 
     Args:
-        topic: Topic name (e.g., "topic_01")
+        story: Story name (e.g., "story_01")
         character_name: Character name to replace in the script
 
     Returns:
@@ -251,7 +251,7 @@ def load_script_from_file(topic: str, character_name: str) -> Dict[str, Any]:
     src_dir = os.path.dirname(ai_dir)                       # /app/src
     project_root = os.path.dirname(src_dir)                 # /app
 
-    script_file = os.path.join(project_root, "assets", "scripts", f"{topic}.json")
+    script_file = os.path.join(project_root, "assets", "scripts", f"{story}.json")
 
     if not os.path.isfile(script_file):
         raise ValueError(f"Script file not found: {script_file}")
@@ -280,22 +280,22 @@ def load_script_from_file(topic: str, character_name: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid script file format: {e}")
 
 
-def get_background_urls(num_pages: int, topic: str = "topic_01", allow_fallback: bool = True) -> List[str]:
+def get_background_urls(num_pages: int, story: str = "story_01", allow_fallback: bool = True) -> List[str]:
     """
-    Load background images from assets/backgrounds/{topic} and return file paths.
+    Load background images from assets/backgrounds/{story} and return file paths.
     Cycles through available backgrounds if there are more pages than backgrounds.
 
     Args:
         num_pages: Number of pages needed
-        topic: Topic name to find background directory
+        story: Story name to find background directory
 
     Returns:
         List of file paths for backgrounds
 
     Raises:
-        ValueError: If topic background directory doesn't exist or has no images
+        ValueError: If story background directory doesn't exist or has no images
     """
-    background_dir = _resolve_background_directory(topic, allow_fallback)
+    background_dir = _resolve_background_directory(story, allow_fallback)
 
     # Get all image files
     image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
@@ -305,7 +305,7 @@ def get_background_urls(num_pages: int, topic: str = "topic_01", allow_fallback:
     ]
 
     if not background_files:
-        raise ValueError(f"No background images found in {background_dir} for topic '{topic}'")
+        raise ValueError(f"No background images found in {background_dir} for story '{story}'")
 
     # Sort files for consistent ordering
     background_files.sort()
@@ -319,7 +319,7 @@ def get_background_urls(num_pages: int, topic: str = "topic_01", allow_fallback:
 
         # Just return the file path - PIL can handle file paths directly
         background_urls.append(bg_path)
-        print(f"✓ Loaded background: {bg_file} for topic '{topic}'")
+        print(f"✓ Loaded background: {bg_file} for story '{story}'")
 
     return background_urls
 
@@ -521,13 +521,13 @@ async def create_pdf_book_bytes(
     image_urls: List[str],
     scripts: List[str],
     font_path: Optional[str] = None,
-    topic: str = "topic_01",
+    story: str = "story_01",
     background_urls: Optional[List[str]] = None,
     allow_fallback: bool = True
 ) -> bytes:
     """
     Tạo file PDF và trả về dưới dạng bytes để có thể trả về trực tiếp qua API.
-    Background sẽ tự động được load từ thư mục assets/backgrounds/topic_01.
+    Background sẽ tự động được load từ thư mục assets/backgrounds/story_01.
     Tự động remove background cho tất cả ảnh trước khi tạo PDF.
 
     Args:
@@ -563,14 +563,14 @@ async def create_pdf_book_bytes(
             # Sử dụng ảnh gốc nếu có lỗi
             processed_image_urls.append(img_url)
 
-    # Load background images (required for each topic)
+    # Load background images (required for each story)
     if background_urls is None:
-        print(f"Loading backgrounds for {len(scripts)} pages (topic={topic})...")
-        background_urls = get_background_urls(len(scripts), topic, allow_fallback)
-        print(f"✓ Loaded {len(background_urls)} background URLs for topic '{topic}'")
+        print(f"Loading backgrounds for {len(scripts)} pages (story={story})...")
+        background_urls = get_background_urls(len(scripts), story, allow_fallback)
+        print(f"✓ Loaded {len(background_urls)} background URLs for story '{story}'")
     else:
         print(
-            f"Using provided background list with {len(background_urls)} items for topic={topic}"
+            f"Using provided background list with {len(background_urls)} items for story={story}"
         )
 
     # Chuẩn bị font hiện đại

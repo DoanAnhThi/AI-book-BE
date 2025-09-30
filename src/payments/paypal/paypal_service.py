@@ -273,10 +273,45 @@ class PayPalService:
             Dict chứa thông tin PayPal order
         """
         try:
-            import paypalrestsdk
+            import requests
+            import base64
+            import json
 
-            # Tạo PayPal order
-            paypal_order = paypalrestsdk.Order({
+            # PayPal API credentials
+            client_id = os.getenv('PAYPAL_CLIENT_ID')
+            client_secret = os.getenv('PAYPAL_CLIENT_SECRET')
+            mode = os.getenv('PAYPAL_MODE', 'sandbox')
+
+            # PayPal API base URL
+            base_url = 'https://api.sandbox.paypal.com' if mode == 'sandbox' else 'https://api.paypal.com'
+
+            # Get access token
+            auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+            headers = {
+                'Authorization': f'Basic {auth}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+
+            token_response = requests.post(f'{base_url}/v1/oauth2/token',
+                                         data='grant_type=client_credentials',
+                                         headers=headers)
+
+            if token_response.status_code != 200:
+                return {
+                    "success": False,
+                    "error": token_response.text,
+                    "message": "Failed to get PayPal access token"
+                }
+
+            access_token = token_response.json()['access_token']
+
+            # Create order
+            order_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+
+            order_data = {
                 "intent": "CAPTURE",
                 "purchase_units": [{
                     "reference_id": f"order_{order.id}",
@@ -285,31 +320,32 @@ class PayPalService:
                         "value": str(order.total_amount)
                     },
                     "description": f"Order #{order.id} - {order.full_name}"
-                }],
-                "application_context": {
-                    "return_url": success_url,  # Backend success API endpoint
-                    "cancel_url": cancel_url    # Backend cancel API endpoint
-                }
-            })
+                }]
+            }
 
-            if paypal_order.create():
+            order_response = requests.post(f'{base_url}/v2/checkout/orders',
+                                         json=order_data,
+                                         headers=order_headers)
+
+            if order_response.status_code == 201:
+                paypal_order = order_response.json()
                 return {
                     "success": True,
-                    "paypal_order_id": paypal_order.id,
+                    "paypal_order_id": paypal_order['id'],
                     "order": paypal_order
                 }
             else:
                 return {
                     "success": False,
-                    "error": paypal_order.error,
-                    "message": "Failed to create PayPal order"
+                    "error": order_response.text,
+                    "message": f"Failed to create PayPal order: {order_response.status_code}"
                 }
 
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "Exception occurred while creating PayPal order"
+                "message": f"Exception occurred while creating PayPal order: {str(e)}"
             }
 
     def capture_paypal_payment(self, paypal_order_id: str, db: Session = None) -> Dict[str, Any]:
@@ -324,47 +360,75 @@ class PayPalService:
             Dict chứa kết quả capture
         """
         try:
-            import paypalrestsdk
+            import requests
+            import base64
 
-            # Lấy order từ PayPal
-            paypal_order = paypalrestsdk.Order.find(paypal_order_id)
+            # PayPal API credentials
+            client_id = os.getenv('PAYPAL_CLIENT_ID')
+            client_secret = os.getenv('PAYPAL_CLIENT_SECRET')
+            mode = os.getenv('PAYPAL_MODE', 'sandbox')
 
-            if not paypal_order:
+            # PayPal API base URL
+            base_url = 'https://api.sandbox.paypal.com' if mode == 'sandbox' else 'https://api.paypal.com'
+
+            # Get access token
+            auth = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+            headers = {
+                'Authorization': f'Basic {auth}',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+
+            token_response = requests.post(f'{base_url}/v1/oauth2/token',
+                                         data='grant_type=client_credentials',
+                                         headers=headers)
+
+            if token_response.status_code != 200:
                 return {
                     "success": False,
-                    "message": "PayPal order not found"
+                    "error": token_response.text,
+                    "message": "Failed to get PayPal access token"
                 }
 
-            # Capture payment
-            capture_result = paypal_order.capture()
+            access_token = token_response.json()['access_token']
 
-            if capture_result.success():
-                # Lấy transaction ID từ capture result
+            # Capture order
+            capture_headers = {
+                'Authorization': f'Bearer {access_token}',
+                'Content-Type': 'application/json'
+            }
+
+            capture_response = requests.post(f'{base_url}/v2/checkout/orders/{paypal_order_id}/capture',
+                                           headers=capture_headers)
+
+            if capture_response.status_code == 201:
+                capture_data = capture_response.json()
+
+                # Extract transaction ID
                 transaction_id = None
-                if hasattr(capture_result, 'purchase_units') and capture_result.purchase_units:
-                    purchase_unit = capture_result.purchase_units[0]
-                    if hasattr(purchase_unit, 'payments') and purchase_unit.payments:
-                        captures = purchase_unit.payments.captures
+                if 'purchase_units' in capture_data and capture_data['purchase_units']:
+                    purchase_unit = capture_data['purchase_units'][0]
+                    if 'payments' in purchase_unit and 'captures' in purchase_unit['payments']:
+                        captures = purchase_unit['payments']['captures']
                         if captures and len(captures) > 0:
-                            transaction_id = captures[0].id
+                            transaction_id = captures[0]['id']
 
                 return {
                     "success": True,
-                    "capture": capture_result,
+                    "capture": capture_data,
                     "transaction_id": transaction_id
                 }
             else:
                 return {
                     "success": False,
-                    "error": capture_result.error,
-                    "message": "Failed to capture PayPal payment"
+                    "error": capture_response.text,
+                    "message": f"Failed to capture PayPal payment: {capture_response.status_code}"
                 }
 
         except Exception as e:
             return {
                 "success": False,
                 "error": str(e),
-                "message": "Exception occurred while capturing PayPal payment"
+                "message": f"Exception occurred while capturing PayPal payment: {str(e)}"
             }
 
 # Singleton instance

@@ -8,7 +8,7 @@ from openai import OpenAI
 
 async def gen_prompt(
     scripts: List[str],
-    topic: Optional[str] = None,
+    story: Optional[str] = None,
     main_character: Optional[str] = None,
     illustration_style: str = "cute, colorful, children's book illustration"
 ) -> Dict[str, Any]:
@@ -17,7 +17,7 @@ async def gen_prompt(
 
     Args:
         scripts: List of story snippets, one per page.
-        topic: Optional topic of the book to guide prompt tone.
+        story: Optional story of the book to guide prompt tone.
         main_character: Optional main character name to ensure consistency.
         illustration_style: Preferred illustration style keywords.
 
@@ -43,7 +43,7 @@ async def gen_prompt(
     client = OpenAI(api_key=openai_api_key)
 
     # Compose instruction for the model
-    topic_clause = f" about the topic '{topic}'" if topic else ""
+    story_clause = f" about the story '{story}'" if story else ""
     character_clause = (
         f" featuring the main character '{main_character}'" if main_character else ""
     )
@@ -58,7 +58,7 @@ async def gen_prompt(
     )
 
     user_prompt = f"""
-    For each page script below{topic_clause}{character_clause}, craft a detailed image prompt.
+    For each page script below{story_clause}{character_clause}, craft a detailed image prompt.
 
     Requirements:
     1. Keep prompts concise (<= 120 tokens) but descriptive.

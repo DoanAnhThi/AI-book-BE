@@ -19,7 +19,7 @@ from src.ai.services.merge_PDF_book import merge_pdf_books
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
 # Pydantic models cho multi-book endpoint
 class BookInput(BaseModel):
-    topic: str
+    story: str
     image: str
     main_character: str
 
@@ -30,7 +30,7 @@ class MultiBookRequest(BaseModel):
 
 class GenPromptRequest(BaseModel):
     scripts: List[str]
-    topic: Optional[str] = None
+    story: Optional[str] = None
     main_character: Optional[str] = None
     illustration_style: Optional[str] = None
 
@@ -648,7 +648,7 @@ async def generate_prompts(request: GenPromptRequest):
 
     Request body:
     - scripts: Danh sách nội dung trang
-    - topic: Chủ đề sách (tùy chọn)
+    - story: Chủ đề sách (tùy chọn)
     - main_character: Tên nhân vật chính (tùy chọn)
     - illustration_style: Phong cách vẽ (tùy chọn)
 
@@ -659,7 +659,7 @@ async def generate_prompts(request: GenPromptRequest):
     try:
         result = await gen_prompt(
             scripts=request.scripts,
-            topic=request.topic,
+            story=request.story,
             main_character=request.main_character,
             illustration_style=request.illustration_style
         )
@@ -742,11 +742,11 @@ async def merge_pdfs_endpoint(request: MergePdfRequest):
 async def generate_multi_book(request: MultiBookRequest):
     """
     Endpoint tạo nhiều cuốn sách từ payload có sẵn, sau đó merge thành một PDF tổng.
-    Script được load từ file assets/scripts/{topic}.json, background từ assets/backgrounds/{topic}/.
+    Script được load từ file assets/scripts/{story}.json, background từ assets/backgrounds/{story}/.
 
     Request body:
-    - books: Danh sách các book với topic, image, main_character
-      (script được load tự động từ file theo topic, style đã có sẵn trong script)
+    - books: Danh sách các book với story, image, main_character
+      (script được load tự động từ file theo story, style đã có sẵn trong script)
 
     Response: StreamingResponse với file PDF tổng đã merge
     """
@@ -754,24 +754,24 @@ async def generate_multi_book(request: MultiBookRequest):
     all_pdf_bytes = []
 
     try:
-        # Validate all topics and scripts before processing
+        # Validate all stories and scripts before processing
         print("🚀 Starting multi-book generation...")
         print(f"📋 Processing {len(request.books)} book(s)")
-        print("🔍 Validating topics and scripts...")
+        print("🔍 Validating stories and scripts...")
 
         for book_idx, book in enumerate(request.books, start=1):
-            print(f"  📂 Checking book {book_idx}: topic='{book.topic}', character='{book.main_character}'")
+            print(f"  📂 Checking book {book_idx}: story='{book.story}', character='{book.main_character}'")
             try:
                 # Validate background directory exists
-                print(f"    🎨 Checking background directory for topic '{book.topic}'...")
+                print(f"    🎨 Checking background directory for story '{book.story}'...")
                 from src.ai.services.gen_book import _resolve_background_directory
-                background_dir = _resolve_background_directory(book.topic, allow_fallback=False)
+                background_dir = _resolve_background_directory(book.story, allow_fallback=False)
                 print(f"    ✅ Background directory found: {os.path.basename(background_dir)}")
 
                 # Validate script file exists
-                print(f"    📖 Checking script file for topic '{book.topic}'...")
+                print(f"    📖 Checking script file for story '{book.story}'...")
                 from src.ai.services.gen_book import load_script_from_file
-                script_data = load_script_from_file(book.topic, book.main_character)  # Test load
+                script_data = load_script_from_file(book.story, book.main_character)  # Test load
                 print(f"    ✅ Script file loaded: {len(script_data['pages'])} pages")
 
                 print(f"✓ Book {book_idx} validation completed")
@@ -785,14 +785,14 @@ async def generate_multi_book(request: MultiBookRequest):
         print("✅ All validations passed, starting processing...")
 
         for book_idx, book in enumerate(request.books, start=1):
-            print(f"\n📖 Processing book {book_idx}/{len(request.books)}: topic='{book.topic}', character='{book.main_character}'")
+            print(f"\n📖 Processing book {book_idx}/{len(request.books)}: story='{book.story}', character='{book.main_character}'")
             book_start_time = time.time()
 
             # Bước 1: Load script từ file và tạo prompts
             print(f"  🔄 Step 1/3: Loading script from file and preparing prompts...")
             try:
                 from src.ai.services.gen_book import load_script_from_file
-                script_data = load_script_from_file(book.topic, book.main_character)
+                script_data = load_script_from_file(book.story, book.main_character)
                 scripts = [page['page_content'] for page in script_data['pages']]
                 page_prompts = [page['page_prompt'] for page in script_data['pages']]
                 print(f"  ✅ Script loaded: {len(scripts)} pages with prompts ready")
@@ -833,8 +833,8 @@ async def generate_multi_book(request: MultiBookRequest):
             pdf_bytes = await create_pdf_book_bytes(
                 image_urls=image_urls,
                 scripts=scripts,  # Use loaded scripts from file
-                topic=book.topic,  # Required parameter - will validate background exists
-                allow_fallback=False  # No fallback for multi-book - each topic must exist
+                story=book.story,  # Required parameter - will validate background exists
+                allow_fallback=False  # No fallback for multi-book - each story must exist
             )
 
             pdf_time = time.time() - pdf_start

@@ -1,3 +1,0 @@
-# Thay thế bằng credentials thực tế từ PayPal Developer Dashboard
-PAYPAL_CLIENT_ID=your_real_client_id_here
-PAYPAL_CLIENT_SECRET=your_real_client_secret_here

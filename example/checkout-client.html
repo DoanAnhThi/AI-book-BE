@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High5 Gen Book - Client-Side PayPal Checkout</title>
+    <title>High5 Gen Book - Thanh toán PayPal phía client</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -79,9 +79,52 @@
             color: #007bff;
             margin-bottom: 20px;
         }
-        #paypal-button-container {
-            max-width: 300px;
-            margin: 20px auto;
+        #payment-buttons-container {
+            display: grid;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .payment-button-wrapper {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .payment-button-wrapper:hover {
+            border-color: #007bff;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+        }
+
+        .payment-button-wrapper h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+        }
+
+        #paypal-button-container,
+        #apple-pay-button-container,
+        #google-pay-button-container,
+        #amazon-pay-button-container {
+            min-height: 40px;
+        }
+
+        #apple-pay-button {
+            background: black;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 24px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        }
+
+        #apple-pay-button:hover {
+            background: #333;
         }
         .order-item {
             display: flex;
@@ -131,48 +174,48 @@
     </style>
 </head>
 <body>
-    <h1>🛒 Client-Side PayPal Checkout - High5 Gen Book</h1>
+    <h1>🛒 Thanh toán PayPal phía client - High5 Gen Book</h1>
 
     <div class="checkout-container">
         <!-- Checkout Form -->
         <div class="checkout-form">
-            <h2>📋 Billing Information</h2>
+            <h2>📋 Thông tin thanh toán</h2>
 
-            <form id="checkoutForm" onsubmit="handleCheckout(event)">
+            <form id="checkoutForm">
                 <div class="form-section">
-                    <h3>👤 Contact Information</h3>
+                    <h3>👤 Thông tin liên hệ</h3>
                     <div class="form-group">
-                        <label for="email">Email Address:</label>
-                        <input type="email" id="email" placeholder="your@email.com" required>
+                        <label for="email">Địa chỉ email:</label>
+                        <input type="email" id="email" value="test@example.com" placeholder="your@email.com" required>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <h3>📍 Billing Address</h3>
+                    <h3>📍 Địa chỉ thanh toán</h3>
                     <div class="form-group">
-                        <label for="fullName">Full Name:</label>
-                        <input type="text" id="fullName" placeholder="John Doe" required>
+                        <label for="fullName">Họ và tên:</label>
+                        <input type="text" id="fullName" value="Nguyễn Văn Test" placeholder="Nguyễn Văn A" required>
                     </div>
                     <div class="form-group">
-                        <label for="address">Street Address:</label>
-                        <input type="text" id="address" placeholder="123 Main Street" required>
+                        <label for="address">Địa chỉ:</label>
+                        <input type="text" id="address" value="123 Đường Test" placeholder="123 Đường ABC" required>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="city">City:</label>
-                            <input type="text" id="city" placeholder="New York" required>
+                            <label for="city">Thành phố:</label>
+                            <input type="text" id="city" value="Hà Nội" placeholder="Hà Nội" required>
                         </div>
                         <div class="form-group">
-                            <label for="zipCode">ZIP Code:</label>
-                            <input type="text" id="zipCode" placeholder="10001" required>
+                            <label for="zipCode">Mã bưu điện:</label>
+                            <input type="text" id="zipCode" value="100000" placeholder="100000" required>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="country">Country:</label>
+                        <label for="country">Quốc gia:</label>
                         <select id="country" required>
-                            <option value="">Select Country</option>
+                            <option value="">Chọn quốc gia</option>
+                            <option value="VN" selected>Việt Nam</option>
                             <option value="US">United States</option>
-                            <option value="VN">Vietnam</option>
                             <option value="CA">Canada</option>
                             <option value="UK">United Kingdom</option>
                         </select>
@@ -180,14 +223,42 @@
                 </div>
 
                 <div class="paypal-section">
-                    <h3>💳 PayPal Payment</h3>
-                    <p>Click the PayPal button below to complete your purchase securely.</p>
+                    <h3>💳 Chọn phương thức thanh toán</h3>
+                    <p>Điền đầy đủ thông tin ở trên, sau đó chọn phương thức thanh toán</p>
 
-                    <!-- PayPal Button Container -->
+                    <!-- Payment Buttons Container -->
+                    <div id="payment-buttons-container">
+                        <!-- PayPal Button -->
+                        <div class="payment-button-wrapper">
+                            <h4>💰 PayPal</h4>
                     <div id="paypal-button-container"></div>
+                        </div>
+
+                        <!-- Apple Pay Button -->
+                        <div class="payment-button-wrapper">
+                            <h4>🍎 Apple Pay</h4>
+                            <div id="apple-pay-button-container">
+                                <button id="apple-pay-button" style="display: none;">
+                                    Pay with Apple Pay
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Google Pay Button -->
+                        <div class="payment-button-wrapper">
+                            <h4>🎯 Google Pay</h4>
+                            <div id="google-pay-button-container"></div>
+                        </div>
+
+                        <!-- Amazon Pay Button -->
+                        <div class="payment-button-wrapper">
+                            <h4>📦 Amazon Pay</h4>
+                            <div id="amazon-pay-button-container"></div>
+                        </div>
+                    </div>
 
                     <p style="margin-top: 20px; font-size: 14px; color: #666;">
-                        🔒 Your payment information is secure and encrypted
+                        🔒 Thông tin thanh toán được bảo mật và mã hóa
                     </p>
                 </div>
             </form>
@@ -195,7 +266,7 @@
 
         <!-- Order Summary -->
         <div class="order-summary">
-            <h2>📦 Order Summary</h2>
+            <h2>📦 Tóm tắt đơn hàng</h2>
 
             <div class="order-item">
                 <div class="item-details">
@@ -221,13 +292,13 @@
             </div>
 
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: #28a745;">🎁 What you get:</h4>
+                <h4 style="margin: 0 0 10px 0; color: #28a745;">🎁 Bạn sẽ nhận được:</h4>
                 <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 14px;">
-                    <li>Personalized story with your character</li>
-                    <li>8 beautiful illustrations</li>
-                    <li>High-quality PDF download</li>
-                    <li>Instant delivery</li>
-                    <li>Commercial use rights</li>
+                    <li>Câu chuyện cá nhân hóa với nhân vật của bạn</li>
+                    <li>8 hình minh họa đẹp</li>
+                    <li>File PDF chất lượng cao</li>
+                    <li>Giao hàng tức thì</li>
+                    <li>Quyền sử dụng thương mại</li>
                 </ul>
             </div>
         </div>
@@ -252,10 +323,25 @@
             }
         }
 
-        // Function to handle checkout (client-side PayPal)
-        async function handleCheckout(event) {
-            event.preventDefault();
 
+
+        // Initialize PayPal when SDK is loaded
+        function initializePayPal() {
+            console.log('Initializing PayPal buttons...');
+
+            // Check if container exists
+            const container = document.getElementById('paypal-button-container');
+            if (!container) {
+                console.error('PayPal button container not found');
+                showStatus('❌ PayPal container không tìm thấy', 'error');
+                return;
+            }
+
+            console.log('PayPal container found, rendering buttons...');
+            paypal.Buttons({
+                    // Create Order
+                    createOrder: function(data, actions) {
+                        // Get form data
             const email = document.getElementById('email').value;
             const fullName = document.getElementById('fullName').value;
             const address = document.getElementById('address').value;
@@ -265,13 +351,11 @@
 
             // Validate required fields
             if (!email.trim() || !fullName.trim() || !address.trim() || !city.trim() || !zipCode.trim() || !country) {
-                showStatus('❌ Please fill in all required fields!', 'error');
-                return;
+                            throw new Error('Vui lòng điền đầy đủ thông tin!');
             }
 
-            showStatus('🔐 Preparing PayPal payment...', 'info');
+                        showStatus('🔄 Đang chuẩn bị thanh toán...', 'info');
 
-            try {
                 // Create order data
                 const checkoutData = {
                     email: email.trim(),
@@ -283,114 +367,105 @@
                     payment_method: 'paypal'
                 };
 
-                // Create PayPal order via backend
-                const response = await fetch('http://localhost:8000/api/v1/payments/paypal/create-order', {
+                        // First create order in our system
+                        return fetch('http://localhost:8000/api/v1/payments/paypal/create-order', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(checkoutData)
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => {
+                                    throw new Error(err.detail || 'Failed to create order');
                 });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.detail || 'Failed to create order');
                 }
-
+                            return response.json();
+                        })
+                        .then(result => {
                 // Store order ID for later use
                 window.currentOrderId = result.order_id;
 
-                showStatus('✅ PayPal order created. Click PayPal button to proceed.', 'success');
-
-            } catch (error) {
-                console.error('❌ Checkout error:', error);
-                showStatus(`❌ Failed to prepare payment: ${error.message}`, 'error');
-            }
-        }
-
-
-        // Initialize PayPal when SDK is loaded
-        function initializePayPal() {
-            console.log('Initializing PayPal buttons...');
-            paypal.Buttons({
-                    // Create Order
-                    createOrder: function(data, actions) {
-                        if (!window.currentOrderId) {
-                            throw new Error('Please fill in the form and submit first');
-                        }
-
-                        showStatus('🔄 Creating PayPal order...', 'info');
-
-                        return fetch('http://localhost:8000/api/v1/payments/paypal/create-paypal-order', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                order_id: window.currentOrderId
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(orderData => {
-                            if (orderData.success) {
-                                showStatus('✅ PayPal order created successfully!', 'success');
-                                return orderData.paypal_order_id;
-                            } else {
-                                throw new Error(orderData.message || 'Failed to create PayPal order');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Create order error:', error);
-                            showStatus(`❌ ${error.message}`, 'error');
-                            throw error;
-                        });
+                            // Now create PayPal order
+                return fetch('http://localhost:8000/api/v1/payments/paypal/create-paypal-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
                     },
-
-                    // On Approve (Payment successful)
-                    onApprove: function(data, actions) {
-                        showStatus('🔄 Processing payment...', 'info');
-
-                        return fetch('http://localhost:8000/api/v1/payments/paypal/capture-payment', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                order_id: data.orderID,
-                                payer_id: data.payerID
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(captureData => {
-                            if (captureData.success) {
-                                showStatus('✅ Payment successful! Redirecting...', 'success');
-
-                                // Redirect to success page
-                                setTimeout(() => {
-                                    window.location.href = `success.html?order_id=${captureData.order_id}`;
-                                }, 2000);
-                            } else {
-                                showStatus(`❌ Payment failed: ${captureData.message}`, 'error');
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Capture error:', error);
-                            showStatus(`❌ Payment processing failed: ${error.message}`, 'error');
-                        });
-                    },
-
-                    // On Error
-                    onError: function(err) {
-                        console.error('PayPal error:', err);
-                        showStatus('❌ PayPal payment failed. Please try again.', 'error');
-                    },
-
-                    // On Cancel
-                    onCancel: function(data) {
-                        showStatus('ℹ️ Payment cancelled by user.', 'info');
+                    body: JSON.stringify({
+                                    order_id: result.order_id
+                    })
+                            });
+                })
+                .then(response => response.json())
+                .then(orderData => {
+                    if (orderData.success) {
+                                showStatus('✅ Đã tạo đơn hàng PayPal!', 'success');
+                        return orderData.paypal_order_id;
+                    } else {
+                        throw new Error(orderData.message || 'Failed to create PayPal order');
                     }
-                }).render('#paypal-button-container');
+                })
+                .catch(error => {
+                    console.error('Create order error:', error);
+                            showStatus(`❌ Lỗi: ${error.message}`, 'error');
+                    throw error;
+                });
+            },
+
+            // On Approve (Payment successful)
+            onApprove: function(data, actions) {
+                        showStatus('🔄 Đang xử lý thanh toán...', 'info');
+
+                return fetch('http://localhost:8000/api/v1/payments/paypal/capture-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order_id: data.orderID,
+                        payer_id: data.payerID
+                    })
+                })
+                .then(response => response.json())
+                .then(captureData => {
+                    if (captureData.success) {
+                                showStatus('✅ Thanh toán thành công! Đang chuyển hướng...', 'success');
+
+                        // Redirect to success page
+                        setTimeout(() => {
+                            window.location.href = `success.html?order_id=${captureData.order_id}`;
+                        }, 2000);
+                    } else {
+                                showStatus(`❌ Thanh toán thất bại: ${captureData.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Capture error:', error);
+                            showStatus(`❌ Lỗi xử lý thanh toán: ${error.message}`, 'error');
+                });
+            },
+
+            // On Error
+            onError: function(err) {
+                console.error('PayPal error:', err);
+                        showStatus('❌ Thanh toán PayPal thất bại. Vui lòng thử lại.', 'error');
+            },
+
+            // On Cancel
+            onCancel: function(data) {
+                        showStatus('ℹ️ Đã hủy thanh toán.', 'info');
+                    }
+                }).render('#paypal-button-container')
+                .then(() => {
+                    console.log('PayPal buttons rendered successfully');
+                    showStatus('✅ PayPal buttons đã sẵn sàng', 'success');
+                })
+                .catch(error => {
+                    console.error('Failed to render PayPal buttons:', error);
+                    showStatus('❌ Không thể render PayPal buttons', 'error');
+                });
         }
 
         // Load PayPal SDK dynamically with CLIENT_ID from server
@@ -420,22 +495,303 @@
                         if (typeof paypal !== 'undefined') {
                             console.log('PayPal object available, initializing buttons...');
                             initializePayPal();
+                            // Initialize other payment methods after PayPal loads
+                            initializeOtherPaymentMethods();
                         } else {
                             console.error('PayPal object not found after SDK load');
-                            showStatus('❌ PayPal SDK loaded but paypal object not available', 'error');
+                            showStatus('❌ PayPal SDK tải thành công nhưng không tìm thấy object paypal', 'error');
                         }
                     };
 
                     script.onerror = function() {
                         console.error('Failed to load PayPal SDK from server config');
-                        showStatus('❌ Failed to load PayPal payment system', 'error');
+                        showStatus('❌ Không thể tải hệ thống thanh toán PayPal', 'error');
                     };
 
                     document.head.appendChild(script);
                 })
                 .catch(error => {
                     console.error('Failed to load PayPal config:', error);
-                    showStatus(`❌ Failed to load PayPal configuration: ${error.message}`, 'error');
+                    showStatus(`❌ Không thể tải cấu hình PayPal: ${error.message}`, 'error');
+                });
+        }
+
+        // Initialize other payment methods (Apple Pay, Google Pay, Amazon Pay)
+        function initializeOtherPaymentMethods() {
+            console.log('Initializing other payment methods...');
+
+            // Apple Pay
+            initializeApplePay();
+
+            // Google Pay
+            initializeGooglePay();
+
+            // Amazon Pay
+            initializeAmazonPay();
+        }
+
+        // Initialize Apple Pay
+        function initializeApplePay() {
+            console.log('Initializing Apple Pay...');
+
+            // Check if Apple Pay is available
+            if (window.ApplePaySession && ApplePaySession.canMakePayments()) {
+                console.log('Apple Pay is available');
+
+                // Load Apple Pay SDK
+                const applePayScript = document.createElement('script');
+                applePayScript.src = 'https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js';
+                applePayScript.onload = function() {
+                    console.log('Apple Pay SDK loaded');
+
+                    // Create Apple Pay button
+                    const applePayButton = document.getElementById('apple-pay-button');
+                    applePayButton.style.display = 'inline-block';
+                    applePayButton.onclick = function() {
+                        handleApplePay();
+                    };
+
+                    showStatus('✅ Apple Pay đã sẵn sàng', 'success');
+                };
+                applePayScript.onerror = function() {
+                    console.error('Failed to load Apple Pay SDK');
+                };
+                document.head.appendChild(applePayScript);
+            } else {
+                console.log('Apple Pay not available on this device');
+                document.getElementById('apple-pay-button-container').innerHTML = '<p style="color: #666;">Không khả dụng trên thiết bị này</p>';
+            }
+        }
+
+        // Handle Apple Pay payment
+        function handleApplePay() {
+            // Get form data
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('fullName').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const zipCode = document.getElementById('zipCode').value;
+            const country = document.getElementById('country').value;
+
+            // Validate required fields
+            if (!email.trim() || !fullName.trim() || !address.trim() || !city.trim() || !zipCode.trim() || !country) {
+                showStatus('❌ Vui lòng điền đầy đủ thông tin!', 'error');
+                return;
+            }
+
+            showStatus('🔄 Đang chuẩn bị thanh toán Apple Pay...', 'info');
+
+            // Create payment request
+            const paymentRequest = {
+                countryCode: country,
+                currencyCode: 'USD',
+                supportedNetworks: ['visa', 'masterCard', 'amex'],
+                merchantCapabilities: ['supports3DS'],
+                total: {
+                    label: 'High5 Gen Book',
+                    amount: '11.99'
+                }
+            };
+
+            const session = new ApplePaySession(1, paymentRequest);
+
+            session.onvalidatemerchant = function(event) {
+                // Validate merchant with Apple
+                fetch('http://localhost:8000/api/v1/payments/apple-pay/validate-merchant', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        session.completeMerchantValidation(result.merchant_session);
+                    } else {
+                        session.abort();
+                        showStatus('❌ Apple Pay merchant validation failed', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Merchant validation error:', error);
+                    session.abort();
+                    showStatus('❌ Lỗi xác thực merchant Apple Pay', 'error');
+                });
+            };
+
+            session.onpaymentauthorized = function(event) {
+                // Process payment
+                const paymentToken = event.payment.token;
+
+                // Simulate payment processing (in real app, send to backend)
+                setTimeout(() => {
+                    session.completePayment(ApplePaySession.STATUS_SUCCESS);
+                    showStatus('✅ Thanh toán Apple Pay thành công!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'success.html?payment=apple_pay';
+                    }, 2000);
+                }, 1000);
+            };
+
+            session.oncancel = function(event) {
+                showStatus('ℹ️ Đã hủy thanh toán Apple Pay', 'info');
+            };
+
+            session.begin();
+        }
+
+        // Initialize Google Pay
+        function initializeGooglePay() {
+            console.log('Initializing Google Pay...');
+
+            // Load Google Pay SDK
+            const googlePayScript = document.createElement('script');
+            googlePayScript.src = 'https://pay.google.com/gp/p/js/pay.js';
+            googlePayScript.onload = function() {
+                console.log('Google Pay SDK loaded');
+
+                fetch('http://localhost:8000/api/v1/payments/google-pay/config')
+                    .then(response => response.json())
+                    .then(config => {
+                        if (config.success) {
+                            const paymentsClient = new google.payments.api.PaymentsClient({
+                                environment: config.environment
+                            });
+
+                            paymentsClient.createButton({
+                                onClick: () => handleGooglePay(paymentsClient, config),
+                                buttonColor: 'default',
+                                buttonType: 'buy',
+                                buttonLocale: 'en'
+                            }).then(button => {
+                                document.getElementById('google-pay-button-container').appendChild(button);
+                                console.log('Google Pay button created');
+                            }).catch(error => {
+                                console.error('Failed to create Google Pay button:', error);
+                            });
+                        } else {
+                            console.error('Failed to get Google Pay config');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Failed to load Google Pay config:', error);
+                    });
+            };
+            googlePayScript.onerror = function() {
+                console.error('Failed to load Google Pay SDK');
+            };
+            document.head.appendChild(googlePayScript);
+        }
+
+        // Handle Google Pay payment
+        function handleGooglePay(paymentsClient, config) {
+            // Get form data
+            const email = document.getElementById('email').value;
+            const fullName = document.getElementById('fullName').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const zipCode = document.getElementById('zipCode').value;
+            const country = document.getElementById('country').value;
+
+            // Validate required fields
+            if (!email.trim() || !fullName.trim() || !address.trim() || !city.trim() || !zipCode.trim() || !country) {
+                showStatus('❌ Vui lòng điền đầy đủ thông tin!', 'error');
+                return;
+            }
+
+            showStatus('🔄 Đang chuẩn bị thanh toán Google Pay...', 'info');
+
+            const paymentDataRequest = {
+                apiVersion: config.apiVersion,
+                apiVersionMinor: config.apiVersionMinor,
+                allowedPaymentMethods: config.allowedPaymentMethods,
+                transactionInfo: {
+                    totalPriceStatus: 'FINAL',
+                    totalPrice: '11.99',
+                    currencyCode: 'USD',
+                    countryCode: country
+                },
+                merchantInfo: config.merchantInfo
+            };
+
+            paymentsClient.loadPaymentData(paymentDataRequest)
+                .then(paymentData => {
+                    // Process payment data
+                    console.log('Google Pay payment data:', paymentData);
+
+                    // Send to backend for processing
+                    fetch('http://localhost:8000/api/v1/payments/google-pay/process-payment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            payment_data: paymentData
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showStatus('✅ Thanh toán Google Pay thành công!', 'success');
+                            setTimeout(() => {
+                                window.location.href = `success.html?order_id=${result.transaction_id}&payment=google_pay`;
+                            }, 2000);
+                        } else {
+                            showStatus(`❌ Thanh toán Google Pay thất bại: ${result.message}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Google Pay processing error:', error);
+                        showStatus('❌ Lỗi xử lý thanh toán Google Pay', 'error');
+                    });
+                })
+                .catch(error => {
+                    console.error('Google Pay payment cancelled or failed:', error);
+                    showStatus('ℹ️ Đã hủy thanh toán Google Pay', 'info');
+                });
+        }
+
+        // Initialize Amazon Pay
+        function initializeAmazonPay() {
+            console.log('Initializing Amazon Pay...');
+
+            fetch('http://localhost:8000/api/v1/payments/amazon-pay/config')
+                .then(response => response.json())
+                .then(config => {
+                    if (config.success) {
+                        console.log('Amazon Pay config received:', config);
+
+                        // Load Amazon Pay SDK
+                        const amazonPayScript = document.createElement('script');
+                        amazonPayScript.src = 'https://static-na.payments-amazon.com/checkout.js';
+                        amazonPayScript.onload = function() {
+                            console.log('Amazon Pay SDK loaded');
+
+                            // Initialize Amazon Pay
+                            amazon.Pay.renderButton('#amazon-pay-button-container', {
+                                createCheckoutSession: {
+                                    url: 'http://localhost:8000/api/v1/payments/amazon-pay/create-checkout-session'
+                                },
+                                sandbox: config.sandbox,
+                                merchantId: config.merchantId,
+                                ledgerCurrency: config.ledgerCurrency,
+                                checkoutLanguage: config.checkoutLanguage,
+                                productType: config.productType,
+                                placement: 'Cart',
+                                buttonColor: 'Gold'
+                            });
+
+                            console.log('Amazon Pay button rendered');
+                        };
+                        amazonPayScript.onerror = function() {
+                            console.error('Failed to load Amazon Pay SDK');
+                        };
+                        document.head.appendChild(amazonPayScript);
+                    } else {
+                        console.error('Failed to get Amazon Pay config');
+                        document.getElementById('amazon-pay-button-container').innerHTML = '<p style="color: #666;">Cấu hình không khả dụng</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to load Amazon Pay config:', error);
+                    document.getElementById('amazon-pay-button-container').innerHTML = '<p style="color: #666;">Không thể tải cấu hình</p>';
                 });
         }
 
