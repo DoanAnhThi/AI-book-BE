@@ -1,0 +1,65 @@
+name: genbook-prod
+
+services:
+  db:
+    container_name: postgres-prod
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - genbook-network
+    profiles: ["prod"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ai-book:
+    container_name: ai-system-prod
+    image: genbook-api:latest
+    env_file:
+      - .env.prod
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+    networks:
+      - genbook-network
+    profiles: ["prod"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    container_name: nginx-prod
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    networks:
+      - genbook-network
+    profiles: ["prod"]
+    depends_on:
+      - ai-book
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+
+networks:
+  genbook-network:
+    driver: bridge

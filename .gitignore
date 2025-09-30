@@ -60,3 +60,32 @@ api_response.json
 .env
 .env.local
 .env.production
+.env.dev
+.env.prod
+.env.staging
+*.env
+
+# Production configuration files
+ssl/
+nginx/ssl/
+*.pem
+*.key
+*.crt
+
+# Docker volumes (don't commit production data)
+postgres_prod_data/
+postgres_dev_data/
+
+# Upload directories
+dev_uploads/
+prod_uploads/
+uploads/
+
+# Logs
+dev.log
+prod.log
+nginx*.log
+
+# Temporary build files
+.DS_Store
+Thumbs.db
