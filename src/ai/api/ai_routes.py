@@ -13,7 +13,7 @@ from typing import List, Dict, Any, Optional
 from src.ai.services.llm import gen_script  # Import hàm từ services
 from src.ai.services.llm_gen_prompt import gen_prompt
 from src.ai.services.gen_illustration_image import gen_illustration_image  # Import hàm xử lý image
-from src.ai.services.gen_cartoon_image import gen_cartoon_image  # Import hàm tạo cartoon image
+from src.ai.services.gen_avatar import gen_avatar  # Import hàm tạo cartoon image
 from src.ai.services.gen_book import create_pdf_book_bytes, get_background_urls
 from src.ai.services.merge_PDF_book import merge_pdf_books
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
@@ -76,7 +76,7 @@ class GenImagesResponse(BaseModel):
     processing_time: float
     message: str
 
-# Pydantic models cho gen_cartoon_image endpoint
+# Pydantic models cho gen_avatar endpoint
 class GenCartoonImageRequest(BaseModel):
     image_url: str  # URL ảnh đầu vào để chuyển thành cartoon
 
@@ -187,8 +187,8 @@ async def create_cartoon_image(request: GenCartoonImageRequest):
     start_time = time.time()
 
     try:
-        # Gọi hàm gen_cartoon_image từ models với image_url
-        generated_url = await gen_cartoon_image(
+        # Gọi hàm gen_avatar từ models với image_url
+        generated_url = await gen_avatar(
             image_url=request.image_url
         )
 
@@ -514,7 +514,7 @@ async def generate_cartoon_book(request: BookGenerationRequest):
 
         # Bước 2: Chuyển đổi ảnh gốc thành cartoon
         print(f"Converting original image to cartoon: {request.image}")
-        cartoon_image_url = await gen_cartoon_image(
+        cartoon_image_url = await gen_avatar(
             image_url=request.image
         )
 

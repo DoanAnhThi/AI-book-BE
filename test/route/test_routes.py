@@ -24,15 +24,15 @@ async def get_image_paths():
     """Trả về URL các file hình ảnh"""
     return {
         "style_1": {
-            "url": "/test/test_response/image/career.jpeg",
+            "url": "/images/career.jpeg",
             "type": "image/jpeg"
         },
         "style_2": {
-            "url": "/test/test_response/image/detactive.jpeg",
+            "url": "/images/detactive.jpeg",
             "type": "image/jpeg"
         },
         "style_3": {
-            "url": "/test/test_response/image/happy.jpeg",
+            "url": "/images/happy.jpeg",
             "type": "image/jpeg"
         }
     }

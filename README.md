@@ -216,7 +216,7 @@ Xem chi tiết tại [`src/ai/README.md`](./src/ai/README.md)
 │   │   └── 📁 services/
 │   │       ├── 📄 llm.py         # AI text generation (OpenAI)
 │   │       ├── 📄 gen_illustration_image.py  # Tạo ảnh minh họa
-│   │       ├── 📄 gen_cartoon_image.py      # Tạo ảnh cartoon
+│   │       ├── 📄 gen_avatar.py      # Tạo ảnh cartoon
 │   │       ├── 📄 remove_background.py      # Xử lý remove background
 │   │       └── 📄 gen_book.py    # Tạo PDF sách (ReportLab)
 │   └── 📁 db/

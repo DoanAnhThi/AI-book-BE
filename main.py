@@ -25,8 +25,15 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mount static files cho thư mục test
-app.mount("/test", StaticFiles(directory="test"), name="test")
+# Mount static files cho thư mục images
+'''
+FE request: GET /images/career.jpeg
+           ↓
+FastAPI thấy "/images" → gọi StaticFiles(directory="test/test_response/image")
+           ↓
+Tìm file: test/test_response/image/career.jpeg ✅
+'''
+app.mount("/images", StaticFiles(directory="test/test_response/image"), name="images")
 
 # CORS middleware để cho phép frontend truy cập
 app.add_middleware(

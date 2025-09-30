@@ -15,7 +15,7 @@ if not REPLICATE_API_TOKEN:
 client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
 
-async def gen_cartoon_image(
+async def gen_avatar(
     image_url: str,
     output_format: str = "jpg"
 ) -> Optional[str]:
