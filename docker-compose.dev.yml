@@ -1,41 +1,47 @@
-name: genbook-BE
+name: genbook-dev
 
 services:
   db:
-    container_name: postgres
+    container_name: postgres-dev
     image: postgres:15
     environment:
-      POSTGRES_DB: gen_book_db
-      POSTGRES_USER: genbook_user
-      POSTGRES_PASSWORD: genbook_password
+      POSTGRES_DB: gen_book_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_dev_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    profiles: ["dev"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U genbook_user -d gen_book_db"]
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d gen_book_dev"]
       interval: 30s
       timeout: 10s
       retries: 3
 
   ai-book:
-    container_name: ai-system-api
-    build: .
+    container_name: ai-system-dev
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
       - .:/app
       - ./assets:/app/assets:ro
     env_file:
-      - .env
+      - .env.dev
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=postgresql://genbook_user:genbook_password@db:5432/gen_book_db
+      - ENVIRONMENT=development
+      - DEBUG=True
     depends_on:
       db:
         condition: service_healthy
+    profiles: ["dev"]
     restart: unless-stopped
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/')"]
       interval: 30s
@@ -44,4 +50,4 @@ services:
       start_period: 40s
 
 volumes:
-  postgres_data:
+  postgres_dev_data:
