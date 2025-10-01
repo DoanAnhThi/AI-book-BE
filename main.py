@@ -44,17 +44,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Khởi tạo database khi ứng dụng start
-@app.on_event("startup")
-async def startup_event():
-    """Khởi tạo database khi ứng dụng khởi động"""
-    try:
-        init_database()
-        print("✅ Database initialized successfully")
-    except Exception as e:
-        print(f"❌ Database initialization failed: {e}")
-        # Có thể raise exception để dừng ứng dụng nếu database không khởi tạo được
-        # raise e
+# Database sẽ được init khi có request đầu tiên đến
+# @app.on_event("startup")
+# async def startup_event():
+#     """Khởi tạo database khi ứng dụng khởi động"""
+#     try:
+#         # Run database init in thread pool to avoid blocking
+#         import asyncio
+#         from concurrent.futures import ThreadPoolExecutor
+#         loop = asyncio.get_event_loop()
+#         with ThreadPoolExecutor() as executor:
+#             await loop.run_in_executor(executor, init_database)
+#         print("✅ Database initialized successfully")
+#     except Exception as e:
+#         print(f"❌ Database initialization failed: {e}")
+#         # Có thể raise exception để dừng ứng dụng nếu database không khởi tạo được
+#         # raise e
+
+# Health check route
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return "healthy"
 
 # Root route
 @app.get("/")

@@ -1,10 +1,23 @@
-# Use Python 3.13 slim image
-FROM python:3.13-slim
+# Build stage
+FROM python:3.13-slim as builder
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies for rembg, onnxruntime, and curl for healthcheck
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies to user directory
+RUN pip install --user -r requirements.txt
+
+# Production stage
+FROM python:3.13-slim
+
+# Install runtime system dependencies for rembg, onnxruntime, and curl for healthcheck
 RUN apt-get update && apt-get install -y \
     libglib2.0-0 \
     libsm6 \
@@ -14,22 +27,26 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
-
-# Install Python dependencies (use cache for faster rebuilds)
-RUN pip install -r requirements.txt
-
-# Copy the rest of the application
-COPY . .
-
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app \
+    && mkdir -p /app/assets \
     && chown -R app:app /app
+
+WORKDIR /app
+
+# Copy dependencies from builder stage
+COPY --from=builder /root/.local /home/app/.local
+ENV PATH=/home/app/.local/bin:$PATH
+
+# Copy application code
+COPY --chown=app:app . .
+
+# Copy assets (if needed at runtime)
+COPY --chown=app:app assets/ ./assets/
+
 USER app
 
-# Expose port
 EXPOSE 8000
 
-# Command to run the application with reload for development
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Production command
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
