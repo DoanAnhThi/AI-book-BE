@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 
 BASE_DIR = Path(__file__).resolve().parents[3]
-CATALOG_METADATA_PATH = BASE_DIR / "assets" / "catalog_metadata.yaml"
+CATALOG_METADATA_PATH = BASE_DIR / "assets" / "pages_metadata.yaml"
 
 
 def _normalize_component(value: str) -> str:

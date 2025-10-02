@@ -234,7 +234,7 @@ def _resolve_background_directory(story: str = "story_01", allow_fallback: bool 
 
 def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
     """
-    Load script template from assets/scripts/{story}.json and replace character_name placeholder.
+    Load script template from assets/interiors/stories/{story}.json and replace character_name placeholder.
 
     Args:
         story: Story name (e.g., "story_01")
@@ -251,7 +251,7 @@ def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
     src_dir = os.path.dirname(ai_dir)                       # /app/src
     project_root = os.path.dirname(src_dir)                 # /app
 
-    script_file = os.path.join(project_root, "assets", "scripts", f"{story}.json")
+    script_file = os.path.join(project_root, "assets", "interiors", "stories", f"{story}.json")
 
     if not os.path.isfile(script_file):
         raise ValueError(f"Script file not found: {script_file}")
@@ -282,7 +282,7 @@ def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
 
 def get_background_urls(num_pages: int, story: str = "story_01", allow_fallback: bool = True) -> List[str]:
     """
-    Load background images from assets/backgrounds/{story} and return file paths.
+    Load background images from assets/interiors/backgrounds/{story} and return file paths.
     Cycles through available backgrounds if there are more pages than backgrounds.
 
     Args:
@@ -534,7 +534,7 @@ async def create_pdf_book_bytes(
 ) -> bytes:
     """
     Tạo file PDF và trả về dưới dạng bytes để có thể trả về trực tiếp qua API.
-    Background sẽ tự động được load từ thư mục assets/backgrounds/story_01.
+    Background sẽ tự động được load từ thư mục assets/interiors/backgrounds/story_01.
     Tự động remove background cho tất cả ảnh trước khi tạo PDF.
 
     Args:

@@ -13,7 +13,6 @@ from src.ai.services.gen_book import create_pdf_book_bytes
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
 from src.ai.services.get_page_id import get_page_id  # Import hàm get_page_id từ services
 from src.ai.services.swap_face import swap_face  # Import hàm swap_face từ services
-from src.ai.services.gen_page import generate_page  # Import hàm generate_page từ services
 
 # Pydantic models cho gen_script endpoint
 class StoryRequest(BaseModel):
@@ -181,7 +180,7 @@ async def create_book_endpoint(request: CreateBookRequest):
         import yaml
 
         BASE_DIR = Path(__file__).resolve().parents[3]
-        catalog_path = BASE_DIR / "assets" / "catalog_metadata.yaml"
+        catalog_path = BASE_DIR / "assets" / "pages_metadata.yaml"
 
         with catalog_path.open("r", encoding="utf-8") as f:
             catalog_data = yaml.safe_load(f)
