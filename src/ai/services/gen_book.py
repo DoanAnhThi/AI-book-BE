@@ -368,27 +368,34 @@ def _draw_bold_text(c: canvas.Canvas, text: str, x: float, y: float, font_name: 
     Uses specified text and shadow colors for optimal contrast.
     Returns the y position after drawing.
     """
-    # Split text into lines that fit within max_width
-    lines = []
-    words = text.split()
-    current_line = ""
+    # First split by explicit line breaks (\n)
+    paragraphs = text.split('\n')
+    all_lines = []
 
-    for word in words:
-        test_line = current_line + " " + word if current_line else word
-        if c.stringWidth(test_line, font_name, font_size) <= max_width:
-            current_line = test_line
-        else:
-            if current_line:
-                lines.append(current_line)
-            current_line = word
-    if current_line:
-        lines.append(current_line)
+    for paragraph in paragraphs:
+        if not paragraph.strip():
+            continue
+
+        # Then split each paragraph into lines that fit within max_width
+        words = paragraph.split()
+        current_line = ""
+
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            if c.stringWidth(test_line, font_name, font_size) <= max_width:
+                current_line = test_line
+            else:
+                if current_line:
+                    all_lines.append(current_line)
+                current_line = word
+        if current_line:
+            all_lines.append(current_line)
 
     # Draw each line with bold effect
     line_height = font_size * 1.3  # Line spacing
     current_y = y
 
-    for line in lines:
+    for line in all_lines:
         # Create bold effect by drawing multiple copies with small offsets
         offsets = [
             (0.5, 0),    # Right

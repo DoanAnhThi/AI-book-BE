@@ -1,4 +1,6 @@
 import time
+import asyncio
+import json
 import requests
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -14,9 +16,17 @@ from src.ai.services.swap_face import swap_face  # Import hàm swap_face từ se
 from src.ai.services.gen_page import generate_page  # Import hàm generate_page từ services
 
 # Pydantic models cho gen_script endpoint
+class StoryRequest(BaseModel):
+    story_id: str
+
 class GenScriptRequest(BaseModel):
-    type: str   # Book type (Khoa học viễn tưởng, etc.)
-    name: str   # Character name for the story
+    category_id: str
+    book_id: str
+    stories: List[StoryRequest]
+    gender: str  # For future use
+    language: str  # For future use
+    name: str  # Character name
+    image_url: str  # Face image URL for swapping
 
 class GenScriptResponse(BaseModel):
     script: dict
@@ -85,15 +95,17 @@ class SwapFaceResponse(BaseModel):
     model_used: str
     error: Optional[str] = None
 
-# Pydantic models cho create_page endpoint
-class CreatePageRequest(BaseModel):
+# Pydantic models cho create_book endpoint
+class CreateBookRequest(BaseModel):
     category_id: str
     book_id: str
-    story_id: str
-    page_id: str
-    image_url: str  # URL của ảnh face để swap vào character
+    stories: List[StoryRequest]
+    gender: str  # For future use
+    language: str  # For future use
+    name: str  # Character name
+    image_url: str  # Face image URL for swapping
 
-class CreatePageResponse(BaseModel):
+class CreateBookResponse(BaseModel):
     page_key: str
     background_path: str
     character_path: str
@@ -145,77 +157,162 @@ async def swap_face_endpoint(request: SwapFaceRequest) -> SwapFaceResponse:
     )
 
 
-@router.post("/create-page/")
-async def create_page_endpoint(request: CreatePageRequest):
+@router.post("/create-book/")
+async def create_book_endpoint(request: CreateBookRequest):
     """
-    Tạo một trang PDF đơn với background, character đã swap face và page content.
+    Tạo một cuốn sách PDF với nhiều trang từ các stories được chỉ định.
 
     Request body:
     - category_id: ID category
     - book_id: ID book
-    - story_id: ID story
-    - page_id: ID page
-    - image_url: URL ảnh face để swap vào character
+    - stories: Array của story objects với story_id
+    - gender: Giới tính nhân vật (for future use)
+    - language: Ngôn ngữ (for future use)
+    - name: Tên nhân vật chính
+    - image_url: URL ảnh face để swap vào characters
 
-    Response: StreamingResponse với file PDF trang đơn
+    Response: StreamingResponse với file PDF nhiều trang
     """
     start_time = time.time()
 
     try:
-        # Generate the page
-        result = await generate_page(
-            category_id=request.category_id,
-            book_id=request.book_id,
-            story_id=request.story_id,
-            page_id=request.page_id,
-            image_url=request.image_url
+        # Load catalog metadata
+        from pathlib import Path
+        import yaml
+
+        BASE_DIR = Path(__file__).resolve().parents[3]
+        catalog_path = BASE_DIR / "assets" / "catalog_metadata.yaml"
+
+        with catalog_path.open("r", encoding="utf-8") as f:
+            catalog_data = yaml.safe_load(f)
+
+        # Collect all pages to process
+        all_pages = []
+        for story_req in request.stories:
+            story_id = story_req.story_id
+            # Find all pages for this story (assuming 2 pages per story)
+            for page_id in ["01", "02"]:
+                try:
+                    page_key = get_page_id(request.category_id, request.book_id, story_id, page_id)
+                    all_pages.append(page_key)
+                except HTTPException:
+                    # Skip if page doesn't exist
+                    continue
+
+        if not all_pages:
+            raise HTTPException(status_code=400, detail="No valid pages found for the specified stories")
+
+        # Process all pages in parallel
+        async def process_page(page_key):
+            try:
+                page_metadata = catalog_data["pages"].get(page_key)
+                if not page_metadata:
+                    return None, None
+
+                # Load story content
+                story_file_path = BASE_DIR / page_metadata["story_file"]
+                with story_file_path.open("r", encoding="utf-8") as f:
+                    story_data = json.load(f)
+
+                page_content = story_data.get("page_content")
+                if not page_content:
+                    return None, None
+
+                # Get character
+                character_path = page_metadata["character"]
+                # Send file path directly instead of URL for Replicate upload
+
+                # Face swap
+                face_swap_result = await swap_face(
+                    face_image_url=request.image_url,
+                    body_image_url=character_path  # Send file path for direct upload
+                )
+
+                if face_swap_result["success"]:
+                    swapped_image_url = face_swap_result["swapped_image_url"]
+                else:
+                    # Fallback to original character URL
+                    swapped_image_url = f"http://localhost:8000/{character_path}"
+
+                # Remove background
+                try:
+                    processed_image_data = await remove_background(image_url=swapped_image_url)
+                except:
+                    processed_image_data = swapped_image_url
+
+                return page_content, processed_image_data
+
+            except Exception as e:
+                print(f"Error processing page {page_key}: {e}")
+                return None, None
+
+        # Process all pages in parallel
+        tasks = [process_page(page_key) for page_key in all_pages]
+        results = await asyncio.gather(*tasks)
+
+        # Collect valid results
+        all_scripts = []
+        all_image_urls = []
+
+        for page_content, processed_image in results:
+            if page_content and processed_image:
+                all_scripts.append(page_content)
+                all_image_urls.append(processed_image)
+
+        if not all_scripts or not all_image_urls:
+            raise HTTPException(status_code=400, detail="No valid pages processed")
+
+        # Collect background local paths from catalog metadata
+        background_urls = []
+        for page_key in all_pages:
+            page_metadata = catalog_data["pages"].get(page_key)
+            if page_metadata:
+                background_path = page_metadata["background"]
+                # Use local file path for PDF generation (like the old create_page did)
+                background_full_path = BASE_DIR / background_path
+                if background_full_path.exists():
+                    background_urls.append(str(background_full_path))
+                else:
+                    background_urls.append(None)  # Fallback
+            else:
+                background_urls.append(None)  # Fallback
+
+        # Create PDF with all pages
+        pdf_bytes = await create_pdf_book_bytes(
+            image_urls=all_image_urls,
+            scripts=all_scripts,
+            background_urls=background_urls
         )
 
         processing_time = time.time() - start_time
 
         # Return PDF as streaming response
         def generate_pdf():
-            yield result["pdf_bytes"]
+            yield pdf_bytes
 
         response = StreamingResponse(
             generate_pdf(),
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename=page_{result['page_key']}.pdf",
+                "Content-Disposition": f"attachment; filename=book_{request.category_id}_{request.book_id}_{int(time.time())}.pdf",
                 "X-Processing-Time": f"{processing_time:.2f}",
-                "X-Page-Key": result["page_key"],
-                "X-File-Size": str(len(result["pdf_bytes"]))
+                "X-Page-Count": str(len(all_scripts)),
+                "X-File-Size": str(len(pdf_bytes))
             }
         )
 
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
         processing_time = time.time() - start_time
         raise HTTPException(
             status_code=500,
-            detail=f"Page creation failed: {str(e)}"
+            detail=f"Book creation failed: {str(e)}"
         )
 
 
-# Route tạo nội dung sách thiếu nhi cá nhân hóa
-@router.post("/gen-script/", response_model=GenScriptResponse)
-async def create_script(request: GenScriptRequest):
-    """
-    Endpoint tạo nội dung sách thiếu nhi cá nhân hóa
-    Nhận type (loại sách như "Khoa học viễn tưởng") và name (tên nhân vật chính), tạo câu chuyện 3 trang đầu tiên
-    """
-    # Gọi hàm gen_script từ models với type và name
-    result = await gen_script(type=request.type, name=request.name)
-
-    # Trả về kết quả với validation từ Pydantic
-    return GenScriptResponse(
-        script=result.get("script", {}),
-        script_type=result["script_type"],
-        processing_time=result["processing_time"],
-        model_used=result.get("model_used", "unknown"),
-        success=result["success"]
-    )
 
 # Route tạo hình ảnh từ nội dung sách
 @router.post("/gen-illustration-image/", response_model=GenImagesResponse)
@@ -339,62 +436,6 @@ async def remove_image_background(request: RemoveBackgroundRequest):
             message=f"Lỗi khi remove background: {str(e)}"
         )
 
-# Route tạo file PDF và trả về trực tiếp (không lưu)
-@router.post("/create-pdf-book/")
-async def create_pdf_book_direct_endpoint(request: CreatePDFBookRequest):
-    """
-    Tạo PDF sách từ scripts và image URLs, trả về trực tiếp không lưu file.
-
-    Request body:
-    - scripts: Danh sách text cho từng trang (đã escape \\n cho xuống dòng)
-    - image_urls: Danh sách URL ảnh tương ứng
-    - background_urls: Danh sách URL background cho từng trang (tùy chọn)
-
-    Response: StreamingResponse với file PDF
-    """
-    start_time = time.time()
-
-    try:
-        # Kiểm tra số lượng scripts và image_urls có khớp nhau không
-        if len(request.scripts) != len(request.image_urls):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Số lượng scripts ({len(request.scripts)}) và image URLs ({len(request.image_urls)}) phải bằng nhau."
-            )
-
-        if len(request.scripts) == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Phải có ít nhất một script và một image URL."
-            )
-
-        # Tạo PDF dưới dạng bytes với background tự động (tự động remove background)
-        pdf_bytes = await create_pdf_book_bytes(
-            image_urls=request.image_urls,
-            scripts=request.scripts
-        )
-
-        processing_time = time.time() - start_time
-
-        # Trả về file PDF trực tiếp với StreamingResponse
-        def generate_pdf():
-            yield pdf_bytes
-
-        response = StreamingResponse(
-            generate_pdf(),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=generated_book_{int(time.time())}.pdf",
-                "X-Processing-Time": f"{processing_time:.2f}",
-                "X-Page-Count": str(len(request.scripts)),
-                "X-File-Size": str(len(pdf_bytes))
-            }
-        )
-
-        return response
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
     except requests.RequestException as e:
         raise HTTPException(status_code=400, detail=f"Lỗi khi tải ảnh: {str(e)}")
