@@ -35,6 +35,9 @@ Tìm file: test/test_response/image/career.jpeg ✅
 '''
 app.mount("/images", StaticFiles(directory="test/test_response/image"), name="images")
 
+# Mount static files cho thư mục assets (backgrounds, characters, stories)
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
 # CORS middleware để cho phép frontend truy cập
 app.add_middleware(
     CORSMiddleware,
