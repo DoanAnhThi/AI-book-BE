@@ -148,19 +148,20 @@ def _get_optimal_text_colors(brightness: float) -> tuple:
     return text_color, shadow_color
 
 
-def _resolve_background_directory(story: str = "story_01", allow_fallback: bool = True) -> str:
+def _resolve_content_background_directory(story: str = "story_01", allow_fallback: bool = True) -> str:
     """
-    Resolve background directory path based on story name. Accepts variations such as
-    "story 1", "story_01", "Story01". Raises ValueError if no matching directory found.
+    Resolve thư mục background cho nội dung dựa trên tên story.
+    Chấp nhận các biến thể như "story 1", "story_01", "Story01".
 
     Args:
-        story: Story name to resolve
+        story: Tên story để resolve
+        allow_fallback: Cho phép fallback sang thư mục mặc định
 
     Returns:
-        Path to the background directory
+        Path đến thư mục background cho nội dung
 
     Raises:
-        ValueError: If no matching background directory is found
+        ValueError: Nếu không tìm thấy thư mục background phù hợp
     """
     if not story:
         if allow_fallback:
@@ -232,19 +233,19 @@ def _resolve_background_directory(story: str = "story_01", allow_fallback: bool 
     )
 
 
-def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
+def load_content_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
     """
-    Load script template from assets/interiors/stories/{story}.json and replace character_name placeholder.
+    Load script template cho nội dung từ assets/interiors/stories/{story}.json và thay thế placeholder character_name.
 
     Args:
-        story: Story name (e.g., "story_01")
-        character_name: Character name to replace in the script
+        story: Tên story (vd: "story_01")
+        character_name: Tên nhân vật để thay thế trong script
 
     Returns:
-        Dict containing title and pages with replaced placeholders
+        Dict chứa title và pages với placeholders đã được thay thế
 
     Raises:
-        ValueError: If script file doesn't exist or is invalid
+        ValueError: Nếu file script không tồn tại hoặc invalid
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))  # /app/src/ai/services
     ai_dir = os.path.dirname(current_dir)                   # /app/src/ai
@@ -280,22 +281,23 @@ def load_script_from_file(story: str, character_name: str) -> Dict[str, Any]:
         raise ValueError(f"Invalid script file format: {e}")
 
 
-def get_background_urls(num_pages: int, story: str = "story_01", allow_fallback: bool = True) -> List[str]:
+def get_content_backgrounds(num_pages: int, story: str = "story_01", allow_fallback: bool = True) -> List[str]:
     """
-    Load background images from assets/interiors/backgrounds/{story} and return file paths.
+    Load background images cho nội dung từ assets/interiors/backgrounds/{story}.
     Cycles through available backgrounds if there are more pages than backgrounds.
 
     Args:
-        num_pages: Number of pages needed
-        story: Story name to find background directory
+        num_pages: Số trang nội dung cần background
+        story: Tên story để tìm thư mục background phù hợp
+        allow_fallback: Cho phép fallback sang background mặc định
 
     Returns:
-        List of file paths for backgrounds
+        List of file paths cho backgrounds của nội dung
 
     Raises:
-        ValueError: If story background directory doesn't exist or has no images
+        ValueError: Nếu thư mục background không tồn tại hoặc không có ảnh
     """
-    background_dir = _resolve_background_directory(story, allow_fallback)
+    background_dir = _resolve_content_background_directory(story, allow_fallback)
 
     # Get all image files
     image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
@@ -460,24 +462,24 @@ def _draw_text_right_half(c: canvas.Canvas, text: str, font_name: str, page_widt
     _draw_bold_text(c, text, text_x, text_y, font_name, 18, right_width - 16, text_color, shadow_color)  # 16 = left + right padding
 
 
-def create_pdf_book(image_urls: List[str], scripts: List[str], output_filename: str = "generated_book.pdf", font_path: Optional[str] = None, background_urls: Optional[List[str]] = None) -> str:
+def create_content_file(image_urls: List[str], scripts: List[str], output_filename: str = "generated_content.pdf", font_path: Optional[str] = None, background_urls: Optional[List[str]] = None) -> str:
     """
-    Tạo file PDF với số trang tùy ý, mỗi trang gồm:
-    - Background: hình ảnh nền (tùy chọn, mỗi trang có thể khác nhau)
-    - Nửa bên trái: ảnh từ URL tương ứng
-    - Nửa bên phải: script (văn bản) tương ứng với font hiện đại
+    Tạo file PDF nội dung chính với số trang tùy ý, mỗi trang gồm:
+    - Background: hình ảnh nền từ assets
+    - Nửa bên trái: ảnh nhân vật
+    - Nửa bên phải: văn bản nội dung với font hiện đại
 
     File PDF sẽ được lưu cùng cấp với file .py này.
 
     Args:
-        image_urls: Danh sách URL ảnh.
-        scripts: Danh sách đoạn script (chuỗi văn bản).
+        image_urls: Danh sách URL ảnh nhân vật.
+        scripts: Danh sách nội dung văn bản cho từng trang.
         output_filename: Tên file PDF đầu ra.
-        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại (Comic Neue, Patrick Hand, etc.)
-        background_urls: (Tùy chọn) Danh sách URL background cho mỗi trang. Nếu ít hơn số trang, background cuối sẽ được lặp lại.
+        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại.
+        background_urls: (Tùy chọn) Danh sách URL background cho mỗi trang.
 
     Returns:
-        Đường dẫn tuyệt đối tới file PDF đã tạo.
+        Đường dẫn tuyệt đối tới file PDF nội dung đã tạo.
     """
     if len(image_urls) != len(scripts):
         raise ValueError("Số lượng ảnh và script phải bằng nhau.")
@@ -524,7 +526,7 @@ def create_pdf_book(image_urls: List[str], scripts: List[str], output_filename: 
     return output_path
 
 
-async def create_pdf_book_bytes(
+async def create_main_content(
     image_urls: List[str],
     scripts: List[str],
     font_path: Optional[str] = None,
@@ -533,17 +535,20 @@ async def create_pdf_book_bytes(
     allow_fallback: bool = True
 ) -> bytes:
     """
-    Tạo file PDF và trả về dưới dạng bytes để có thể trả về trực tiếp qua API.
-    Background sẽ tự động được load từ thư mục assets/interiors/backgrounds/story_01.
+    Tạo nội dung chính của cuốn sách dưới dạng PDF bytes.
+    Bao gồm các trang nội dung với hình ảnh và văn bản, nền được load từ assets.
     Tự động remove background cho tất cả ảnh trước khi tạo PDF.
 
     Args:
-        image_urls: Danh sách URL ảnh.
-        scripts: Danh sách đoạn script (chuỗi văn bản).
-        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại (Comic Neue, Patrick Hand, etc.)
+        image_urls: Danh sách URL ảnh nhân vật.
+        scripts: Danh sách nội dung văn bản cho từng trang.
+        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại.
+        story: Tên story để load background phù hợp.
+        background_urls: (Tùy chọn) Danh sách URL background cho mỗi trang.
+        allow_fallback: Cho phép fallback sang background mặc định nếu không tìm thấy.
 
     Returns:
-        Dữ liệu PDF dưới dạng bytes.
+        Dữ liệu PDF của nội dung chính dưới dạng bytes.
     """
     if len(image_urls) != len(scripts):
         raise ValueError("Số lượng ảnh và script phải bằng nhau.")
@@ -570,14 +575,14 @@ async def create_pdf_book_bytes(
             # Sử dụng ảnh gốc nếu có lỗi
             processed_image_urls.append(img_url)
 
-    # Load background images (required for each story)
+    # Load background images cho nội dung (required for each story)
     if background_urls is None:
-        print(f"Loading backgrounds for {len(scripts)} pages (story={story})...")
-        background_urls = get_background_urls(len(scripts), story, allow_fallback)
-        print(f"✓ Loaded {len(background_urls)} background URLs for story '{story}'")
+        print(f"Loading content backgrounds for {len(scripts)} pages (story={story})...")
+        background_urls = get_content_backgrounds(len(scripts), story, allow_fallback)
+        print(f"✓ Loaded {len(background_urls)} content background URLs for story '{story}'")
     else:
         print(
-            f"Using provided background list with {len(background_urls)} items for story={story}"
+            f"Using provided content background list with {len(background_urls)} items for story={story}"
         )
 
     # Chuẩn bị font hiện đại

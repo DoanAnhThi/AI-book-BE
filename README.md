@@ -218,7 +218,7 @@ Xem chi tiết tại [`src/ai/README.md`](./src/ai/README.md)
 │   │       ├── 📄 gen_illustration_image.py  # Tạo ảnh minh họa
 │   │       ├── 📄 gen_avatar.py      # Tạo ảnh cartoon
 │   │       ├── 📄 remove_background.py      # Xử lý remove background
-│   │       └── 📄 gen_book.py    # Tạo PDF sách (ReportLab)
+│   │       └── 📄 create_pages.py    # Tạo PDF sách (ReportLab)
 │   └── 📁 db/
 │       ├── 📁 api/
 │       │   └── 📄 db_routes.py   # Database endpoints

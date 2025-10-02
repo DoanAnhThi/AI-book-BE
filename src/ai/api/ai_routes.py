@@ -9,7 +9,7 @@ from typing import List, Optional
 from src.ai.services.llm import gen_script  # Import hàm từ services
 from src.ai.services.gen_illustration_image import gen_illustration_image  # Import hàm xử lý image
 from src.ai.services.gen_avatar import gen_avatar  # Import hàm tạo cartoon image
-from src.ai.services.gen_book import create_pdf_book_bytes
+from src.ai.services.create_pages import create_main_content
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
 from src.ai.services.get_page_id import get_page_id  # Import hàm get_page_id từ services
 from src.ai.services.swap_face import swap_face  # Import hàm swap_face từ services
@@ -55,7 +55,7 @@ class GenCartoonImageResponse(BaseModel):
     processing_time: float
     message: str
 
-# Pydantic models cho create_pdf_book endpoint
+# Pydantic models cho create_main_content endpoint
 class CreatePDFBookRequest(BaseModel):
     scripts: List[str]  # Danh sách các đoạn script cho từng trang
     image_urls: List[str]  # Danh sách URL ảnh cho từng trang
@@ -156,10 +156,10 @@ async def swap_face_endpoint(request: SwapFaceRequest) -> SwapFaceResponse:
     )
 
 
-@router.post("/create-book/")
-async def create_book_endpoint(request: CreateBookRequest):
+@router.post("/create-content/")
+async def create_content_endpoint(request: CreateBookRequest):
     """
-    Tạo một cuốn sách PDF với nhiều trang từ các stories được chỉ định.
+    Tạo nội dung chính của cuốn sách PDF với nhiều trang từ các stories được chỉ định.
 
     Request body:
     - category_id: ID category
@@ -170,7 +170,7 @@ async def create_book_endpoint(request: CreateBookRequest):
     - name: Tên nhân vật chính
     - image_url: URL ảnh face để swap vào characters
 
-    Response: StreamingResponse với file PDF nhiều trang
+    Response: StreamingResponse với file PDF nội dung nhiều trang
     """
     start_time = time.time()
 
@@ -276,8 +276,8 @@ async def create_book_endpoint(request: CreateBookRequest):
             else:
                 background_urls.append(None)  # Fallback
 
-        # Create PDF with all pages
-        pdf_bytes = await create_pdf_book_bytes(
+        # Create main content PDF with all pages
+        pdf_bytes = await create_main_content(
             image_urls=all_image_urls,
             scripts=all_scripts,
             background_urls=background_urls
