@@ -237,7 +237,7 @@ async def create_content_endpoint(request: CreateBookRequest):
                     return None, None
 
                 # Replace {character_name} placeholder with actual name from request
-                page_content = page_content.replace("{character_name}", request.name)
+                page_content = page_content.replace("{character_name}", request.name).replace("{Name}", request.name)
 
                 # Get character
                 character_path = page_metadata["character"]

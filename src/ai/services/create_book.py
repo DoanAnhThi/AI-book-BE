@@ -1,13 +1,104 @@
 import time
 import io
+import asyncio
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 import yaml
 from pypdf import PdfWriter, PdfReader
 from .create_cover import create_cover
 from .create_interleafs import create_interleafs
 from .create_content import create_main_content
 from .get_page_id import get_page_id
+
+
+async def _process_story_pages(
+    story_req: dict,
+    category_id: str,
+    book_id: str,
+    image_url: str,
+    catalog_data: dict,
+    base_dir: Path
+) -> Tuple[List[str], List[str], List[str]]:
+    """
+    Xử lý song song các trang trong một story.
+    Returns: (scripts, image_urls, background_urls)
+    """
+    story_id = story_req["story_id"]
+    tasks = []
+
+    # Import required services
+    from .swap_face import swap_face
+    from .remove_background import remove_background
+
+    async def process_single_page(page_id: str):
+        try:
+            page_key = get_page_id(category_id, book_id, story_id, page_id)
+            page_metadata = catalog_data["pages"].get(page_key)
+            if not page_metadata:
+                return None, None, None
+
+            # Load story content
+            story_file_path = base_dir / page_metadata["story_file"]
+            with story_file_path.open("r", encoding="utf-8") as f:
+                import json
+                story_data = json.load(f)
+
+            page_content = story_data.get("page_content")
+            if not page_content:
+                return None, None, None
+
+            # Get character
+            character_path = page_metadata["character"]
+
+            # Face swap
+            face_swap_result = await swap_face(
+                face_image_url=image_url,
+                body_image_url=character_path
+            )
+
+            if face_swap_result["success"]:
+                swapped_image_url = face_swap_result["swapped_image_url"]
+            else:
+                swapped_image_url = f"http://localhost:8000/{character_path}"
+
+            # Remove background
+            try:
+                processed_image_data = await remove_background(image_url=swapped_image_url)
+            except:
+                processed_image_data = swapped_image_url
+
+            # Collect background local path
+            background_path = page_metadata["background"]
+            background_full_path = base_dir / background_path
+            background_url = str(background_full_path) if background_full_path.exists() else None
+
+            return page_content, processed_image_data, background_url
+
+        except Exception as e:
+            print(f"Error processing page {page_id} for story {story_id}: {e}")
+            return None, None, None
+
+    # Tạo tasks cho 2 pages của story (01, 02)
+    for page_id in ["01", "02"]:
+        tasks.append(process_single_page(page_id))
+
+    # Chạy song song 2 pages
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    scripts = []
+    image_urls = []
+    background_urls = []
+
+    for result in results:
+        if isinstance(result, Exception):
+            print(f"Exception in page processing: {result}")
+            continue
+        if result and all(result):  # Check if all values are not None
+            scripts.append(result[0])
+            image_urls.append(result[1])
+            background_urls.append(result[2])
+
+    return scripts, image_urls, background_urls
 
 
 async def create_book(
@@ -47,114 +138,85 @@ async def create_book(
     print(f"Creating complete book for category {category_id}, book {book_id}")
     print(f"Stories count: {len(stories)}")
 
-    # Tạo cover
-    print("Step 1: Creating cover...")
-    try:
-        cover_pdf = await create_cover(
-            category_id=category_id,
-            book_id=book_id,
-            name=name,
-            image_url=image_url
-        )
-        print("✓ Cover created successfully")
-    except Exception as e:
-        raise Exception(f"Failed to create cover: {str(e)}")
-
     # Tính số interleaf cần tạo (cứ 2 stories thì 1 interleaf)
     interleaf_count = len(stories) // 2
-    print(f"Step 2: Will create {interleaf_count} interleaf(s) for {len(stories)} stories")
+    print(f"Step 1: Will create {interleaf_count} interleaf(s) for {len(stories)} stories")
 
-    # Tạo content PDF (tất cả stories)
-    print("Step 3: Creating content pages...")
-    try:
-        # Load catalog metadata
-        import os
-        catalog_path = Path("/app/assets/interiors/pages_metadata.yaml")
+    # CHẠY SONG SONG: Tạo cover và chuẩn bị content data
+    print("Step 2: Creating cover and preparing content (parallel)...")
 
-        with catalog_path.open("r", encoding="utf-8") as f:
-            catalog_data = yaml.safe_load(f)
+    async def create_cover_task():
+        try:
+            return await create_cover(
+                category_id=category_id,
+                book_id=book_id,
+                name=name,
+                image_url=image_url
+            )
+        except Exception as e:
+            raise Exception(f"Failed to create cover: {str(e)}")
 
-        # Collect all pages to process
-        all_scripts = []
-        all_image_urls = []
-        all_background_urls = []
+    async def prepare_content_task():
+        try:
+            # Load catalog metadata
+            catalog_path = Path("/app/assets/interiors/pages_metadata.yaml")
+            with catalog_path.open("r", encoding="utf-8") as f:
+                catalog_data = yaml.safe_load(f)
 
-        # Import required services
-        from .swap_face import swap_face
-        from .remove_background import remove_background
+            # Xử lý song song tất cả stories
+            print(f"  - Processing {len(stories)} stories in parallel...")
+            story_tasks = [
+                _process_story_pages(story_req, category_id, book_id, image_url, catalog_data, base_dir)
+                for story_req in stories
+            ]
 
-        for story_req in stories:
-            story_id = story_req["story_id"]
-            # Find all pages for this story (assuming 2 pages per story)
-            for page_id in ["01", "02"]:
-                try:
-                    page_key = get_page_id(category_id, book_id, story_id, page_id)
-                    page_metadata = catalog_data["pages"].get(page_key)
-                    if not page_metadata:
-                        continue
+            story_results = await asyncio.gather(*story_tasks, return_exceptions=True)
 
-                    # Load story content
-                    story_file_path = base_dir / page_metadata["story_file"]
-                    with story_file_path.open("r", encoding="utf-8") as f:
-                        import json
-                        story_data = json.load(f)
+            # Collect tất cả data từ các stories
+            all_scripts = []
+            all_image_urls = []
+            all_background_urls = []
 
-                    page_content = story_data.get("page_content")
-                    if not page_content:
-                        continue
-
-                    # Get character
-                    character_path = page_metadata["character"]
-
-                    # Face swap
-                    face_swap_result = await swap_face(
-                        face_image_url=image_url,
-                        body_image_url=character_path
-                    )
-
-                    if face_swap_result["success"]:
-                        swapped_image_url = face_swap_result["swapped_image_url"]
-                    else:
-                        swapped_image_url = f"http://localhost:8000/{character_path}"
-
-                    # Remove background
-                    try:
-                        processed_image_data = await remove_background(image_url=swapped_image_url)
-                    except:
-                        processed_image_data = swapped_image_url
-
-                    # Collect background local path
-                    background_path = page_metadata["background"]
-                    background_full_path = base_dir / background_path
-                    background_url = str(background_full_path) if background_full_path.exists() else None
-
-                    all_scripts.append(page_content)
-                    all_image_urls.append(processed_image_data)
-                    all_background_urls.append(background_url)
-
-                except Exception as e:
-                    print(f"Error processing page {page_key}: {e}")
+            for i, result in enumerate(story_results):
+                if isinstance(result, Exception):
+                    print(f"Exception in story {stories[i]['story_id']}: {result}")
                     continue
 
-        if not all_scripts or not all_image_urls:
-            raise Exception("No valid pages processed")
+                story_scripts, story_images, story_backgrounds = result
+                all_scripts.extend(story_scripts)
+                all_image_urls.extend(story_images)
+                all_background_urls.extend(story_backgrounds)
 
-        # Create main content PDF
-        content_pdf = await create_main_content(
-            image_urls=all_image_urls,
-            scripts=all_scripts,
-            background_urls=all_background_urls,
-            font_path=font_path
-        )
-        print("✓ Content pages created successfully")
+            if not all_scripts or not all_image_urls:
+                raise Exception("No valid pages processed")
 
-    except Exception as e:
-        raise Exception(f"Failed to create content: {str(e)}")
+            print(f"  - Collected {len(all_scripts)} pages from {len(stories)} stories")
 
-    # Tạo interleafs nếu cần
+            # Create main content PDF
+            content_pdf = await create_main_content(
+                image_urls=all_image_urls,
+                scripts=all_scripts,
+                background_urls=all_background_urls,
+                font_path=font_path
+            )
+
+            return content_pdf, all_scripts
+
+        except Exception as e:
+            raise Exception(f"Failed to prepare content: {str(e)}")
+
+    # Chạy song song cover và content preparation
+    cover_task = create_cover_task()
+    content_task = prepare_content_task()
+
+    cover_pdf, (content_pdf, all_scripts) = await asyncio.gather(cover_task, content_task)
+
+    print("✓ Cover and content preparation completed successfully")
+
+    # Tạo interleafs nếu cần (chạy song song với merge nếu có thể)
     interleaf_pdfs = []
     if interleaf_count > 0:
-        print(f"Step 4: Creating {interleaf_count} interleaf(s)...")
+        print(f"Step 3: Creating {interleaf_count} interleaf(s)...")
         try:
             # Create all interleafs
             all_interleafs_pdf = await create_interleafs(
@@ -188,7 +250,7 @@ async def create_book(
             interleaf_pdfs = []
 
     # Merge tất cả PDFs theo thứ tự xen kẽ: cover + (content 4 pages + interleaf 2 pages) * n
-    print("Step 5: Merging all PDFs in interleaved order...")
+    print("Step 4: Merging all PDFs in interleaved order...")
     try:
         writer = PdfWriter()
 
@@ -232,6 +294,7 @@ async def create_book(
         print(f"  - Content: {len(content_pages)} pages")
         print(f"  - Interleafs: {len(interleaf_pdfs) * 2} pages")
         print(f"  - Total: {1 + len(content_pages) + (len(interleaf_pdfs) * 2)} pages")
+        print(f"  - Parallel processing: Stories processed concurrently, pages within each story processed concurrently")
 
         return final_pdf
 
