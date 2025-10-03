@@ -3,7 +3,7 @@
 # Test script cho tất cả PDF generation endpoints
 # Chạy lệnh: chmod +x test_all_endpoints.sh && ./test_all_endpoints.sh
 
-IMAGE_URL="https://assets-us-01.kc-usercontent.com/5cb25086-82d2-4c89-94f0-8450813a0fd3/0c3fcefb-bc28-4af6-985e-0c3b499ae832/Elon_Musk_Royal_Society.jpg?fm=jpg&auto=format"
+IMAGE_URL="https://assets-us-01.kc-usercontent.com/5cb25086-82d2-4c89-94f0-8450813a0fd3/0c3fcefb-bc28-4af6-985e-0c3b499ae832/Elon_Musk_Royal_Society.jpeg?fm=jpeg&auto=format"
 CHARACTER_NAME="Nguyễn Văn A"  # Thay đổi tên nhân vật ở đây
 
 echo "🚀 Testing tất cả PDF Generation Endpoints"

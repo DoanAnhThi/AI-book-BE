@@ -1,62 +1,62 @@
 catalog_version: 1
 pages:
-  "0101":
+  "0101(01)":
     interleaf_order: "01"
     page_id: "01"
-    background: "assets/interleafs/backgrounds/background_0101.jpeg"
-    character: "assets/interleafs/characters/character_0101.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0101.json"
-  "0102":
+    background: "assets/interleafs/backgrounds/background_0101(01).jpeg"
+    character: "assets/interleafs/characters/character_0101(01).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0101(01).json"
+  "0101(02)":
     interleaf_order: "01"
     page_id: "02"
-    background: "assets/interleafs/backgrounds/background_0102.jpeg"
-    character: "assets/interleafs/characters/character_0102.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0102.json"
-  "0201":
+    background: "assets/interleafs/backgrounds/background_0101(02).jpeg"
+    character: "assets/interleafs/characters/character_0101(02).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0101(02).json"
+  "0102(01)":
     interleaf_order: "02"
     page_id: "01"
-    background: "assets/interleafs/backgrounds/background_0201.jpeg"
-    character: "assets/interleafs/characters/character_0201.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0201.json"
-  "0202":
+    background: "assets/interleafs/backgrounds/background_0102(01).jpeg"
+    character: "assets/interleafs/characters/character_0102(01).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0102(01).json"
+  "0102(02)":
     interleaf_order: "02"
     page_id: "02"
-    background: "assets/interleafs/backgrounds/background_0202.jpeg"
-    character: "assets/interleafs/characters/character_0202.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0202.json"
-  "0301":
+    background: "assets/interleafs/backgrounds/background_0102(02).jpeg"
+    character: "assets/interleafs/characters/character_0102(02).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0102(02).json"
+  "0103(01)":
     interleaf_order: "03"
     page_id: "01"
-    background: "assets/interleafs/backgrounds/background_0301.jpeg"
-    character: "assets/interleafs/characters/character_0301.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0301.json"
-  "0302":
+    background: "assets/interleafs/backgrounds/background_0103(01).jpeg"
+    character: "assets/interleafs/characters/character_0103(01).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0103(01).json"
+  "0103(02)":
     interleaf_order: "03"
     page_id: "02"
-    background: "assets/interleafs/backgrounds/background_0302.jpeg"
-    character: "assets/interleafs/characters/character_0302.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0302.json"
-  "0401":
+    background: "assets/interleafs/backgrounds/background_0103(02).jpeg"
+    character: "assets/interleafs/characters/character_0103(02).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0103(02).json"
+  "0104(01)":
     interleaf_order: "04"
     page_id: "01"
-    background: "assets/interleafs/backgrounds/background_0401.jpeg"
-    character: "assets/interleafs/characters/character_0401.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0401.json"
-  "0402":
+    background: "assets/interleafs/backgrounds/background_0104(01).jpeg"
+    character: "assets/interleafs/characters/character_0104(01).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0104(01).json"
+  "0104(02)":
     interleaf_order: "04"
     page_id: "02"
-    background: "assets/interleafs/backgrounds/background_0402.jpeg"
-    character: "assets/interleafs/characters/character_0402.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0402.json"
-  "0501":
+    background: "assets/interleafs/backgrounds/background_0104(02).jpeg"
+    character: "assets/interleafs/characters/character_0104(02).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0104(02).json"
+  "0105(01)":
     interleaf_order: "05"
     page_id: "01"
-    background: "assets/interleafs/backgrounds/background_0501.jpeg"
-    character: "assets/interleafs/characters/character_0501.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0501.json"
-  "0502":
+    background: "assets/interleafs/backgrounds/background_0105(01).jpeg"
+    character: "assets/interleafs/characters/character_0105(01).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0105(01).json"
+  "0105(02)":
     interleaf_order: "05"
     page_id: "02"
-    background: "assets/interleafs/backgrounds/background_0502.jpeg"
-    character: "assets/interleafs/characters/character_0502.jpeg"
-    quote_file: "assets/interleafs/quotes/quote_0502.json"
+    background: "assets/interleafs/backgrounds/background_0105(02).jpeg"
+    character: "assets/interleafs/characters/character_0105(02).jpeg"
+    quote_file: "assets/interleafs/quotes/quote_0105(02).json"

@@ -300,7 +300,7 @@ def get_content_backgrounds(num_pages: int, story: str = "story_01", allow_fallb
     background_dir = _resolve_content_background_directory(story, allow_fallback)
 
     # Get all image files
-    image_extensions = ('.jpg', '.jpeg', '.png', '.gif', '.bmp')
+    image_extensions = ('.jpeg', '.jpeg', '.png', '.gif', '.bmp')
     background_files = [
         f for f in os.listdir(background_dir)
         if f.lower().endswith(image_extensions)

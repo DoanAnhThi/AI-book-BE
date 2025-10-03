@@ -258,7 +258,8 @@ async def create_interleafs(
         interleaf_order = f"{interleaf_idx:02d}"
 
         for page_num in ["01", "02"]:
-            interleaf_id = f"{interleaf_order}{page_num}"
+            # New format: XXYY(AA) where XX=category_id, YY=interleaf_order, AA=page_num
+            interleaf_id = f"{category_id}{interleaf_order}({page_num})"
 
             if has_metadata:
                 page_metadata = interleaf_data.get("pages", {}).get(interleaf_id)
@@ -270,7 +271,7 @@ async def create_interleafs(
                 character_path = page_metadata['character']  # Use relative path like create_content
                 quote_file_path = Path(f"/app/{page_metadata['quote_file']}")
             else:
-                # Default paths
+                # Default paths - use new format
                 background_path = Path(f"/app/assets/interleafs/backgrounds/background_{interleaf_id}.jpeg")
                 character_path = f"assets/interleafs/characters/character_{interleaf_id}.jpeg"  # Use relative path
                 quote_file_path = Path(f"/app/assets/interleafs/quotes/quote_{interleaf_id}.json")

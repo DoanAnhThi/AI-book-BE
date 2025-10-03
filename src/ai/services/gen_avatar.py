@@ -17,14 +17,14 @@ client = replicate.Client(api_token=REPLICATE_API_TOKEN)
 
 async def gen_avatar(
     image_url: str,
-    output_format: str = "jpg"
+    output_format: str = "jpeg"
 ) -> Optional[str]:
     """
     Generate a cartoon image using Replicate's Flux Kontext Pro model
 
     Args:
         image_url (str): URL of the input image to convert to cartoon
-        output_format (str): Output format - "jpg" (default: "jpg")
+        output_format (str): Output format - "jpeg" (default: "jpeg")
 
     Returns:
         Optional[str]: URL of the generated cartoon image, or None if generation failed

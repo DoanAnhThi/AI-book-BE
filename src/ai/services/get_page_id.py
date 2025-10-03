@@ -23,9 +23,10 @@ def _build_page_key(category_id: str, book_id: str, story_id: str, page_id: str)
         _normalize_component(category_id),
         _normalize_component(book_id),
         _normalize_component(story_id),
-        _normalize_component(page_id),
     )
-    return "".join(components)
+    base_key = "".join(components)
+    page_component = _normalize_component(page_id)
+    return f"{base_key}({page_component})"
 
 
 def _load_catalog_pages() -> Dict[str, Dict[str, Any]]:
