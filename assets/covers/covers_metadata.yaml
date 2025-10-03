@@ -1,0 +1,26 @@
+catalog_version: 1
+covers:
+  "0101":
+    category_id: "01"
+    book_id: "01"
+    background: "assets/covers/backgrounds/background_0101.jpeg"
+    character: "assets/covers/characters/character_0101.jpeg"
+    title_file: "assets/covers/titles/title_0101.json"
+  "0102":
+    category_id: "01"
+    book_id: "02"
+    background: "assets/covers/backgrounds/background_0102.jpeg"
+    character: "assets/covers/characters/character_0102.jpeg"
+    title_file: "assets/covers/titles/title_0102.json"
+  "0201":
+    category_id: "02"
+    book_id: "01"
+    background: "assets/covers/backgrounds/background_0201.jpeg"
+    character: "assets/covers/characters/character_0201.jpeg"
+    title_file: "assets/covers/titles/title_0201.json"
+  "0202":
+    category_id: "02"
+    book_id: "02"
+    background: "assets/covers/backgrounds/background_0202.jpeg"
+    character: "assets/covers/characters/character_0202.jpeg"
+    title_file: "assets/covers/titles/title_0202.json"

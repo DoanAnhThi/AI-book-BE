@@ -52,10 +52,10 @@ async def gen_script(type: str, name: str):
           2. Create content for the first 3 pages of the story
           3. Each page should have both story content and image prompt
           4. Fun, educational style, appropriate for 4-year-old children
-          5. The main character is {name}, who explores the world of {type} in fun and imaginative ways
-          6. Each "page-prompt" must describe {name}, the {type}-related setting, and style: "cute, colorful, children's book illustration"
-          7. Ensure {name} appears consistently across all prompts
-          8. Each "page-prompt" must describe {name}'s clear action (running, jumping, swimming, exploring, etc.) instead of only standing still.
+          5. The main character is {character_name}, who explores the world of {type} in fun and imaginative ways
+          6. Each "page-prompt" must describe {character_name}, the {type}-related setting, and style: "cute, colorful, children's book illustration"
+          7. Ensure {character_name} appears consistently across all prompts
+          8. Each "page-prompt" must describe {character_name}'s clear action (running, jumping, swimming, exploring, etc.) instead of only standing still.
           9. Include camera angle/viewpoint in each "page-prompt" using these common AI art keywords:
              - front view / front-facing → chụp chính diện
              - back view / rear view / from behind → chụp từ phía sau

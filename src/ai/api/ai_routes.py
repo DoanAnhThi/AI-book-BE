@@ -2,6 +2,7 @@ import time
 import asyncio
 import json
 import requests
+import yaml
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -9,10 +10,13 @@ from typing import List, Optional
 from src.ai.services.llm import gen_script  # Import hàm từ services
 from src.ai.services.gen_illustration_image import gen_illustration_image  # Import hàm xử lý image
 from src.ai.services.gen_avatar import gen_avatar  # Import hàm tạo cartoon image
-from src.ai.services.create_pages import create_main_content
+from src.ai.services.create_content import create_main_content
 from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
 from src.ai.services.get_page_id import get_page_id  # Import hàm get_page_id từ services
 from src.ai.services.swap_face import swap_face  # Import hàm swap_face từ services
+from src.ai.services.create_cover import create_cover  # Import hàm create_cover từ services
+from src.ai.services.create_interleafs import create_interleafs  # Import hàm create_interleafs từ services
+from src.ai.services.create_book import create_book  # Import hàm create_book từ services
 
 # Pydantic models cho gen_script endpoint
 class StoryRequest(BaseModel):
@@ -114,6 +118,21 @@ class CreateBookResponse(BaseModel):
     processing_time: float
     success: bool
 
+# Pydantic models cho create_cover endpoint
+class CreateCoverRequest(BaseModel):
+    category_id: str
+    book_id: str
+    name: str  # Character name
+    image_url: str  # Face image URL for swapping
+
+# Pydantic models cho create_interleaf endpoint
+class CreateInterleafRequest(BaseModel):
+    category_id: str
+    book_id: str
+    interleaf_count: int  # Number of interleafs to create
+    name: str  # Character name
+    image_url: str  # Face image URL for swapping
+
 # Tạo APIRouter instance
 router = APIRouter()
 
@@ -180,7 +199,7 @@ async def create_content_endpoint(request: CreateBookRequest):
         import yaml
 
         BASE_DIR = Path(__file__).resolve().parents[3]
-        catalog_path = BASE_DIR / "assets" / "pages_metadata.yaml"
+        catalog_path = BASE_DIR / "assets" / "interiors" / "pages_metadata.yaml"
 
         with catalog_path.open("r", encoding="utf-8") as f:
             catalog_data = yaml.safe_load(f)
@@ -216,6 +235,9 @@ async def create_content_endpoint(request: CreateBookRequest):
                 page_content = story_data.get("page_content")
                 if not page_content:
                     return None, None
+
+                # Replace {character_name} placeholder with actual name from request
+                page_content = page_content.replace("{character_name}", request.name)
 
                 # Get character
                 character_path = page_metadata["character"]
@@ -304,6 +326,175 @@ async def create_content_endpoint(request: CreateBookRequest):
 
     except HTTPException:
         raise
+    except Exception as e:
+        processing_time = time.time() - start_time
+        raise HTTPException(
+            status_code=500,
+            detail=f"Book creation failed: {str(e)}"
+        )
+
+
+@router.post("/create-cover/")
+async def create_cover_endpoint(request: CreateCoverRequest):
+    """
+    Tạo cover của cuốn sách PDF.
+
+    Request body:
+    - category_id: ID category (2 chữ số)
+    - book_id: ID book (2 chữ số)
+    - name: Tên nhân vật chính
+    - image_url: URL ảnh face để swap vào character
+
+    Response: StreamingResponse với file PDF cover
+    """
+    start_time = time.time()
+
+    try:
+        # Tạo cover PDF
+        pdf_bytes = await create_cover(
+            category_id=request.category_id,
+            book_id=request.book_id,
+            name=request.name,
+            image_url=request.image_url
+        )
+
+        processing_time = time.time() - start_time
+
+        # Return PDF as streaming response
+        def generate_pdf():
+            yield pdf_bytes
+
+        response = StreamingResponse(
+            generate_pdf(),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=cover_{request.category_id}_{request.book_id}_{int(time.time())}.pdf",
+                "X-Processing-Time": f"{processing_time:.2f}",
+                "X-File-Size": str(len(pdf_bytes))
+            }
+        )
+
+        return response
+
+    except Exception as e:
+        processing_time = time.time() - start_time
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cover creation failed: {str(e)}"
+        )
+
+
+@router.post("/create-interleaf/")
+async def create_interleaf_endpoint(request: CreateInterleafRequest):
+    """
+    Tạo các trang interleaf của cuốn sách PDF.
+
+    Request body:
+    - category_id: ID category (2 chữ số)
+    - book_id: ID book (2 chữ số)
+    - interleaf_count: Số lượng interleaf cần tạo
+    - name: Tên nhân vật chính
+    - image_url: URL ảnh face để swap vào characters
+
+    Response: StreamingResponse với file PDF interleaf pages
+    """
+    start_time = time.time()
+
+    try:
+        # Tạo interleaf PDF
+        pdf_bytes = await create_interleafs(
+            category_id=request.category_id,
+            book_id=request.book_id,
+            interleaf_count=request.interleaf_count,
+            name=request.name,
+            image_url=request.image_url
+        )
+
+        processing_time = time.time() - start_time
+
+        # Return PDF as streaming response
+        def generate_pdf():
+            yield pdf_bytes
+
+        response = StreamingResponse(
+            generate_pdf(),
+            media_type="application/pdf",
+           headers={
+                "Content-Disposition": f"attachment; filename=interleaf_{request.category_id}_{request.book_id}_{int(time.time())}.pdf",
+                "X-Processing-Time": f"{processing_time:.2f}",
+                "X-Page-Count": str(request.interleaf_count * 2),  # 2 pages per interleaf
+                "X-File-Size": str(len(pdf_bytes))
+           }
+        )
+
+        return response
+
+    except Exception as e:
+        processing_time = time.time() - start_time
+        raise HTTPException(
+            status_code=500,
+            detail=f"Interleaf creation failed: {str(e)}"
+        )
+
+
+@router.post("/create-book/")
+async def create_book_endpoint(request: CreateBookRequest):
+    """
+    Tạo toàn bộ cuốn sách PDF bao gồm cover, content và interleafs.
+
+    Logic:
+    - 1 cover đầu tiên
+    - Nội dung chính từ các stories được chỉ định
+    - Cứ mỗi 2 stories thì có 1 interleaf (2 trang)
+
+    Request body:
+    - category_id: ID category (2 chữ số)
+    - book_id: ID book (2 chữ số)
+    - stories: Array của story objects với story_id
+    - gender: Giới tính nhân vật (for future use)
+    - language: Ngôn ngữ (for future use)
+    - name: Tên nhân vật chính
+    - image_url: URL ảnh face để swap vào characters
+
+    Response: StreamingResponse với file PDF hoàn chỉnh
+    """
+    start_time = time.time()
+
+    try:
+        # Tạo book PDF hoàn chỉnh
+        pdf_bytes = await create_book(
+            category_id=request.category_id,
+            book_id=request.book_id,
+            stories=[story.dict() for story in request.stories],  # Convert to dict
+            name=request.name,
+            image_url=request.image_url
+        )
+
+        processing_time = time.time() - start_time
+
+        # Tính số interleaf
+        interleaf_count = len(request.stories) // 2
+        total_pages = 1 + (len(request.stories) * 2) + (interleaf_count * 2)  # cover + content pages + interleaf pages
+
+        # Return PDF as streaming response
+        def generate_pdf():
+            yield pdf_bytes
+
+        response = StreamingResponse(
+            generate_pdf(),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=book_{request.category_id}_{request.book_id}_{int(time.time())}.pdf",
+                "X-Processing-Time": f"{processing_time:.2f}",
+                "X-Page-Count": str(total_pages),
+                "X-Stories-Count": str(len(request.stories)),
+                "X-Interleaf-Count": str(interleaf_count),
+                "X-File-Size": str(len(pdf_bytes))
+            }
+        )
+
+        return response
+
     except Exception as e:
         processing_time = time.time() - start_time
         raise HTTPException(

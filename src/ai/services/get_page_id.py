@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Dict, Any, Optional
-import yaml
 from fastapi import HTTPException
+import yaml
 
 
-BASE_DIR = Path(__file__).resolve().parents[3]
-CATALOG_METADATA_PATH = BASE_DIR / "assets" / "pages_metadata.yaml"
+CATALOG_METADATA_PATH = Path("/app/assets/interiors/pages_metadata.yaml")
 
 
 def _normalize_component(value: str) -> str:

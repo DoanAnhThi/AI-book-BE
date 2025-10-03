@@ -8,10 +8,10 @@ from typing import Optional
 
 async def remove_background(image_url: str) -> Optional[str]:
     """
-    Remove background from an image URL and return as base64 data URL
+    Remove background from an image URL or file path and return as base64 data URL
 
     Args:
-        image_url (str): URL of the input image
+        image_url (str): URL of the input image or file path
 
     Returns:
         Optional[str]: Base64 data URL of the processed image, or None if processing failed
@@ -22,17 +22,22 @@ async def remove_background(image_url: str) -> Optional[str]:
         return image_url
 
     try:
-        print(f"Starting remove background for URL: {image_url}")
+        print(f"Starting remove background for: {image_url}")
 
-        # Step 1: Download image from URL
-        print("Step 1: Downloading image...")
-        response = requests.get(image_url, timeout=30)
-        response.raise_for_status()
-        print(f"Downloaded image, size: {len(response.content)} bytes")
+        # Step 2: Load image from URL or file path
+        print("Step 2: Loading image...")
+        if image_url.startswith(('http://', 'https://')):
+            # Load from URL
+            response = requests.get(image_url, timeout=30)
+            response.raise_for_status()
+            print(f"Downloaded image from URL, size: {len(response.content)} bytes")
+            input_img = Image.open(io.BytesIO(response.content))
+        else:
+            # Load from file path
+            print(f"Loading image from file path: {image_url}")
+            input_img = Image.open(image_url)
+            print(f"Loaded image from file, size: {input_img.size}")
 
-        # Step 2: Open image from bytes
-        print("Step 2: Opening image...")
-        input_img = Image.open(io.BytesIO(response.content))
         print(f"Image opened successfully, format: {input_img.format}, size: {input_img.size}")
 
         # Step 3: Remove background
