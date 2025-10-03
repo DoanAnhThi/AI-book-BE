@@ -88,7 +88,7 @@ async def swap_face(face_image_url: str, body_image_url: str) -> Dict[str, Any]:
             "upscale": True,
             "detailer": False,
             "swap_image": face_image_url,  # Face to swap from - this is a URL
-            "hair_source": "target",
+            "hair_source": "user",
             "user_gender": "a woman",
             "target_image": target_image,  # Body to swap onto - uploaded or external URL
             "user_b_gender": "a woman"

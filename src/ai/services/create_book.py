@@ -15,6 +15,7 @@ async def _process_story_pages(
     story_req: dict,
     category_id: str,
     book_id: str,
+    name: str,
     image_url: str,
     catalog_data: dict,
     base_dir: Path
@@ -46,6 +47,9 @@ async def _process_story_pages(
             page_content = story_data.get("page_content")
             if not page_content:
                 return None, None, None
+
+            # Replace {character_name} placeholder with actual name from request
+            page_content = page_content.replace("{character_name}", name).replace("{Name}", name)
 
             # Get character
             character_path = page_metadata["character"]
@@ -166,7 +170,7 @@ async def create_book(
             # Xử lý song song tất cả stories
             print(f"  - Processing {len(stories)} stories in parallel...")
             story_tasks = [
-                _process_story_pages(story_req, category_id, book_id, image_url, catalog_data, base_dir)
+                _process_story_pages(story_req, category_id, book_id, name, image_url, catalog_data, base_dir)
                 for story_req in stories
             ]
 

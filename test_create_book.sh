@@ -10,38 +10,55 @@ echo "📚 Testing /create-book/ endpoint"
 echo "=================================="
 echo "👤 Character: $CHARACTER_NAME"
 echo "📖 Book: Category 01, Book 01"
-echo "📄 Stories: 2 stories (01, 02)"
+echo "📄 Stories: 3 stories (01, 02, 03)"
 echo ""
 
-curl -X POST "http://localhost:8000/api/v1/create-book/" \
+RESPONSE=$(curl -X POST "http://localhost:8000/api/v1/create-book/" \
   -H "Content-Type: application/json" \
   -d "{
     \"category_id\": \"01\",
-    \"book_id\": \"01\", 
+    \"book_id\": \"01\",
     \"stories\": [
       {\"story_id\": \"01\"},
-      {\"story_id\": \"02\"}
+      {\"story_id\": \"02\"},
+      {\"story_id\": \"03\"}
     ],
-    \"gender\": \"male\",
-    \"language\": \"vi\",
+    \"gender\": \"boy\",
+    \"language\": \"VN\",
     \"name\": \"$CHARACTER_NAME\",
     \"image_url\": \"$IMAGE_URL\"
   }" \
   --max-time 600 \
-  -o test/run/book_test.pdf \
-  -w "Status: %{http_code}, Time: %{time_total}s, Size: %{size_download} bytes
-"
+  -w "Status: %{http_code}, Time: %{time_total}s, Size: %{size_download} bytes")
 
 echo ""
-echo "✅ Test completed!"
-echo "📁 File saved: test/run/book_test.pdf"
+echo "📄 API Response:"
+echo "$RESPONSE" | jq '.' 2>/dev/null || echo "$RESPONSE"
+echo ""
+
+# Extract download URL from response
+DOWNLOAD_URL=$(echo "$RESPONSE" | jq -r '.download_url' 2>/dev/null)
+
+if [ "$DOWNLOAD_URL" != "null" ] && [ -n "$DOWNLOAD_URL" ]; then
+    echo "📥 Downloading PDF from: $DOWNLOAD_URL"
+    curl -o "test/run/book_test.pdf" "$DOWNLOAD_URL" \
+      --max-time 300 \
+      -w "Download Status: %{http_code}, Size: %{size_download} bytes\n"
+    echo ""
+    echo "✅ PDF downloaded successfully!"
+    echo "📁 File saved: test/run/book_test.pdf"
+else
+    echo "❌ Failed to get download URL from response"
+fi
+
 echo ""
 echo "📊 Expected structure:"
 echo "  - Cover: 1 page"
-echo "  - Story 1: 2 pages"  
+echo "  - Story 1: 2 pages"
 echo "  - Story 2: 2 pages"
 echo "  - Interleaf 1: 2 pages"
-echo "  - Total: 7 pages"
+echo "  - Story 3: 2 pages"
+echo "  - Total: 9 pages"
 echo ""
 echo "💡 Note: PDF generation takes 2-5+ minutes"
 echo "💡 Change CHARACTER_NAME and IMAGE_URL variables to test with different data"

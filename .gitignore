@@ -81,6 +81,9 @@ dev_uploads/
 prod_uploads/
 uploads/
 
+# Generated PDFs
+runs/*.pdf
+
 # Logs
 dev.log
 prod.log

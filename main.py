@@ -38,6 +38,9 @@ app.mount("/images", StaticFiles(directory="test/test_response/image"), name="im
 # Mount static files cho thư mục assets (backgrounds, characters, stories)
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
+# Mount static files cho thư mục runs
+app.mount("/runs", StaticFiles(directory="runs"), name="runs")
+
 # CORS middleware để cho phép frontend truy cập
 app.add_middleware(
     CORSMiddleware,

@@ -32,6 +32,24 @@ pages:
     background: "assets/interiors/backgrounds/background_010102(02).jpeg"
     character: "assets/interiors/characters/character_010102(02).jpeg"
     story_file: "assets/interiors/stories/story_010102(02).json"
+  "010103(01)":
+    category_id: "01"
+    book_id: "01"
+    story_id: "03"
+    page_id: "01"
+    background: "assets/interiors/backgrounds/background_010103(01).jpeg"
+    character: "assets/interiors/characters/character_010103(01).jpeg"
+    story_file: "assets/interiors/stories/story_010103(01).json"
+    
+  "010103(02)":
+    category_id: "01"
+    book_id: "01"
+    story_id: "03"
+    page_id: "02"
+    background: "assets/interiors/backgrounds/background_010103(02).jpeg"
+    character: "assets/interiors/characters/character_010103(02).jpeg"
+    story_file: "assets/interiors/stories/story_010103(02).json"
+    
   "010201(01)":
     category_id: "01"
     book_id: "02"

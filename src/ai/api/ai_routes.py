@@ -109,12 +109,11 @@ class CreateBookRequest(BaseModel):
     image_url: str  # Face image URL for swapping
 
 class CreateBookResponse(BaseModel):
-    page_key: str
-    background_path: str
-    character_path: str
-    story_file_path: str
-    swapped_character_url: str
-    page_content: str
+    download_url: str
+    file_size: int
+    page_count: int
+    stories_count: int
+    interleaf_count: int
     processing_time: float
     success: bool
 
@@ -437,7 +436,7 @@ async def create_interleaf_endpoint(request: CreateInterleafRequest):
         )
 
 
-@router.post("/create-book/")
+@router.post("/create-book/", response_model=CreateBookResponse)
 async def create_book_endpoint(request: CreateBookRequest):
     """
     Tạo toàn bộ cuốn sách PDF bao gồm cover, content và interleafs.
@@ -456,7 +455,7 @@ async def create_book_endpoint(request: CreateBookRequest):
     - name: Tên nhân vật chính
     - image_url: URL ảnh face để swap vào characters
 
-    Response: StreamingResponse với file PDF hoàn chỉnh
+    Response: CreateBookResponse với URL download file PDF
     """
     start_time = time.time()
 
@@ -472,28 +471,38 @@ async def create_book_endpoint(request: CreateBookRequest):
 
         processing_time = time.time() - start_time
 
-        # Tính số interleaf
+        # Tính số interleaf và tổng số trang
         interleaf_count = len(request.stories) // 2
         total_pages = 1 + (len(request.stories) * 2) + (interleaf_count * 2)  # cover + content pages + interleaf pages
 
-        # Return PDF as streaming response
-        def generate_pdf():
-            yield pdf_bytes
+        # Lưu file PDF vào thư mục runs
+        import os
+        from pathlib import Path
 
-        response = StreamingResponse(
-            generate_pdf(),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f"attachment; filename=book_{request.category_id}_{request.book_id}_{int(time.time())}.pdf",
-                "X-Processing-Time": f"{processing_time:.2f}",
-                "X-Page-Count": str(total_pages),
-                "X-Stories-Count": str(len(request.stories)),
-                "X-Interleaf-Count": str(interleaf_count),
-                "X-File-Size": str(len(pdf_bytes))
-            }
+        # Tạo tên file duy nhất
+        timestamp = int(time.time())
+        filename = f"book_{request.category_id}_{request.book_id}_{timestamp}.pdf"
+        filepath = Path("runs") / filename
+
+        # Đảm bảo thư mục tồn tại
+        os.makedirs("runs", exist_ok=True)
+
+        # Lưu file PDF
+        with open(filepath, "wb") as f:
+            f.write(pdf_bytes)
+
+        # Tạo URL download
+        download_url = f"http://localhost:8000/runs/{filename}"
+
+        return CreateBookResponse(
+            download_url=download_url,
+            file_size=len(pdf_bytes),
+            page_count=total_pages,
+            stories_count=len(request.stories),
+            interleaf_count=interleaf_count,
+            processing_time=processing_time,
+            success=True
         )
-
-        return response
 
     except Exception as e:
         processing_time = time.time() - start_time
