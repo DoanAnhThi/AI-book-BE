@@ -16,7 +16,6 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from .remove_background import remove_background
 from .swap_face import swap_face
 
 
@@ -67,28 +66,65 @@ def _register_unicode_font(font_path: Optional[str] = None) -> str:
     return "Helvetica"
 
 
-def _download_image_as_pil(url: str) -> Image.Image:
-    # Check if it's a base64 data URL
-    if url.startswith("data:image/"):
-        # Extract base64 data from data URL
-        # Format: data:image/png;base64,{base64_data}
+def _download_image_as_pil(source: str) -> Image.Image:
+    # Handle base64 data URL
+    if source.startswith("data:image/"):
         try:
-            header, base64_data = url.split(",", 1)
+            _, base64_data = source.split(",", 1)
             image_bytes = base64.b64decode(base64_data)
-            image_stream = io.BytesIO(image_bytes)
-            img = Image.open(image_stream)
+            return Image.open(io.BytesIO(image_bytes))
         except Exception as e:
             raise ValueError(f"Failed to decode base64 image data: {e}")
-    else:
-        # Regular URL - download from web
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        image_stream = io.BytesIO(response.content)
-        img = Image.open(image_stream)
 
-    if img.mode not in ("RGB", "RGBA"):
+    # Try local filesystem paths first
+    possible_paths = [Path(source), Path("/app") / source]
+    for path in possible_paths:
+        if path.exists():
+            return Image.open(path)
+
+    # Fallback to HTTP(S) URL
+    response = requests.get(source, timeout=30)
+    response.raise_for_status()
+    img = Image.open(io.BytesIO(response.content))
+
+    if img.mode == "P":
+        if "transparency" in img.info:
+            img = img.convert("RGBA")
+        else:
+            img = img.convert("RGB")
+    elif img.mode == "LA":
+        img = img.convert("RGBA")
+    elif img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGB")
     return img
+
+
+def _image_to_base64_png(image: Image.Image) -> str:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+
+
+def _convert_image_to_transparent_base64(source: str) -> str:
+    image = _download_image_as_pil(source)
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+
+    cleaned_pixels = []
+    for pixel in image.getdata():
+        if isinstance(pixel, int):
+            pixel = (pixel, pixel, pixel, 255)
+        elif len(pixel) == 3:
+            pixel = (*pixel, 255)
+
+        r, g, b, a = pixel
+        if a > 0 and r < 10 and g < 10 and b < 10:
+            cleaned_pixels.append((r, g, b, 0))
+        else:
+            cleaned_pixels.append((r, g, b, a))
+
+    image.putdata(cleaned_pixels)
+    return _image_to_base64_png(image)
 
 
 def _analyze_background_brightness(bg_img: Image.Image, text_region_ratio: float = 0.3) -> float:
@@ -158,7 +194,15 @@ def _draw_image_left_half(c: canvas.Canvas, pil_img: Image.Image, page_width: fl
     x = margin + (left_half_width - new_width) / 2
     y = margin + (img_max_height - new_height) / 2
 
-    c.drawImage(ImageReader(pil_img), x, y, width=new_width, height=new_height, mask='auto')
+    if pil_img.mode == "RGBA":
+        buffer = io.BytesIO()
+        pil_img.save(buffer, format="PNG")
+        buffer.seek(0)
+        image_reader = ImageReader(buffer)
+    else:
+        image_reader = ImageReader(pil_img)
+
+    c.drawImage(image_reader, x, y, width=new_width, height=new_height, mask='auto')
 
 
 def _draw_title_center(c: canvas.Canvas, title: str, font_name: str, page_width: float, page_height: float, bg_path: Optional[str] = None):
@@ -275,23 +319,9 @@ async def create_cover(
         print("Face swap successful")
     else:
         print(f"Face swap failed: {face_swap_result.get('error', 'Unknown error')}")
-        # Fallback: sử dụng file path trực tiếp cho remove_background
-        # (remove_background có thể xử lý file paths nếu được modify)
         swapped_character_url = str(character_path)
 
-    # Remove background from character
-    print("Removing background from character...")
-    try:
-        processed_character_data = await remove_background(image_url=swapped_character_url)
-        if processed_character_data:
-            character_image_url = processed_character_data
-            print("Background removal successful")
-        else:
-            character_image_url = swapped_character_url
-            print("Background removal failed, using original")
-    except Exception as e:
-        print(f"Error removing background: {e}")
-        character_image_url = swapped_character_url
+    character_image_url = _convert_image_to_transparent_base64(swapped_character_url)
 
     # Chuẩn bị font hiện đại
     font_name = _register_unicode_font(font_path)
