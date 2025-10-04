@@ -78,11 +78,15 @@ def _download_image_as_pil(url: str) -> Image.Image:
         except Exception as e:
             raise ValueError(f"Failed to decode base64 image data: {e}")
     else:
-        # Regular URL - download from web
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-        image_stream = io.BytesIO(response.content)
-        img = Image.open(image_stream)
+        if url.startswith(("http://", "https://")):
+            response = requests.get(url, timeout=30)
+            response.raise_for_status()
+            image_stream = io.BytesIO(response.content)
+            img = Image.open(image_stream)
+        else:
+            if not os.path.isfile(url):
+                raise ValueError(f"Image file not found: {url}")
+            img = Image.open(url)
 
     # Preserve transparency whenever possible
     if img.mode == "P":

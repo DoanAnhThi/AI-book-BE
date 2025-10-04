@@ -292,8 +292,8 @@ async def create_content_endpoint(request: CreateBookRequest):
                 if face_swap_result["success"]:
                     swapped_image_url = face_swap_result["swapped_image_url"]
                 else:
-                    # Fallback to original character URL
-                    swapped_image_url = f"http://localhost:8000/{character_path}"
+                    # Use file path directly for local files
+                    swapped_image_url = character_path
 
                 # Ensure the swapped image has transparent background (convert to base64 data URL)
                 processed_image_data = await convert_image_to_transparent_base64(swapped_image_url)

@@ -29,7 +29,6 @@ async def _process_story_pages(
 
     # Import required services
     from .swap_face import swap_face
-    from .remove_background import remove_background
 
     async def process_single_page(page_id: str):
         try:
@@ -63,13 +62,10 @@ async def _process_story_pages(
             if face_swap_result["success"]:
                 swapped_image_url = face_swap_result["swapped_image_url"]
             else:
-                swapped_image_url = f"http://localhost:8000/{character_path}"
+                swapped_image_url = character_path
 
-            # Remove background
-            try:
-                processed_image_data = await remove_background(image_url=swapped_image_url)
-            except:
-                processed_image_data = swapped_image_url
+            # Skip remove_background to preserve original props (balloon, basket, etc.)
+            processed_image_data = swapped_image_url
 
             # Collect background local path
             background_path = page_metadata["background"]
