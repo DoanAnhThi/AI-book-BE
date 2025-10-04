@@ -60,8 +60,8 @@ INTERLEAF_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/test/test-interleaf/" \
 echo "$INTERLEAF_RESPONSE"
 
 echo ""
-echo "📚 Testing POST /api/v1/test/test-content/"
-echo "-----------------------------------------"
+echo "📚 Testing POST /api/v1/test/test-content/ (12 stories)"
+echo "-----------------------------------------------------"
 CONTENT_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/test/test-content/" \
   -H "Content-Type: application/json" \
   -d '{
@@ -69,7 +69,17 @@ CONTENT_RESPONSE=$(curl -s -X POST "$BASE_URL/api/v1/test/test-content/" \
     "book_id": "01",
     "stories": [
       {"story_id": "01"},
-      {"story_id": "02"}
+      {"story_id": "02"},
+      {"story_id": "03"},
+      {"story_id": "04"},
+      {"story_id": "05"},
+      {"story_id": "06"},
+      {"story_id": "07"},
+      {"story_id": "08"},
+      {"story_id": "09"},
+      {"story_id": "10"},
+      {"story_id": "11"},
+      {"story_id": "12"}
     ],
     "name": "Stephen",
     "image_url": "https://example.com/face.jpg"
@@ -91,7 +101,7 @@ echo "- PDF endpoint: URL retrieval"
 echo "- Images endpoint: Image URLs"
 echo "- Cover endpoint: PDF file generated"
 echo "- Interleaf endpoint: PDF file generated"
-echo "- Content endpoint: PDF file generated"
+echo "- Content endpoint: PDF file generated (12 stories)"
 
 echo ""
 echo "🎯 All endpoints tested successfully!"
