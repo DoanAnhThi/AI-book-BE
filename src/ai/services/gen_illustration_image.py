@@ -6,13 +6,17 @@ import json
 import replicate
 from typing import Optional, Dict, Any
 
-# Get Replicate API token from environment variable
-REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
-if not REPLICATE_API_TOKEN:
-    raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
+# Replicate client will be initialized when needed
+client = None
 
-# Initialize Replicate client with API token
-client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+def _get_replicate_client():
+    global client
+    if client is None:
+        REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+        if not REPLICATE_API_TOKEN:
+            raise ValueError("REPLICATE_API_TOKEN environment variable is not set")
+        client = replicate.Client(api_token=REPLICATE_API_TOKEN)
+    return client
 
 
 async def gen_illustration_image(
@@ -70,7 +74,7 @@ async def gen_illustration_image(
 
         # Run the Replicate model asynchronously using thread pool
         loop = asyncio.get_event_loop()
-        output = await loop.run_in_executor(None, client.run, "bytedance/seedream-4", input_params)
+        output = await loop.run_in_executor(None, _get_replicate_client().run, "bytedance/seedream-4", input_params)
 
         # Return the URL of the generated image
         def ensure_utf8_string(text):

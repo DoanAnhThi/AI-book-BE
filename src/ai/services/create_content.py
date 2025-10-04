@@ -65,6 +65,34 @@ def _register_unicode_font(font_path: Optional[str]) -> str:
     return "Helvetica"
 
 
+def _image_to_base64_png(image: Image.Image) -> str:
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return f"data:image/png;base64,{base64.b64encode(buffer.getvalue()).decode('utf-8')}"
+
+
+def _convert_image_to_transparent_base64(source: str) -> str:
+    image = _download_image_as_pil(source)
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+
+    cleaned_pixels = []
+    for pixel in image.getdata():
+        if isinstance(pixel, int):
+            pixel = (pixel, pixel, pixel, 255)
+        elif len(pixel) == 3:
+            pixel = (*pixel, 255)
+
+        r, g, b, a = pixel
+        if a > 0 and r < 10 and g < 10 and b < 10:
+            cleaned_pixels.append((r, g, b, 0))
+        else:
+            cleaned_pixels.append((r, g, b, a))
+
+    image.putdata(cleaned_pixels)
+    return _image_to_base64_png(image)
+
+
 def _download_image_as_pil(url: str) -> Image.Image:
     # Check if it's a base64 data URL
     if url.startswith("data:image/"):
@@ -475,7 +503,7 @@ def _draw_text_right_half(c: canvas.Canvas, text: str, font_name: str, page_widt
 
     # Draw text with bold effect and optimal colors
     text_x = right_x + 8  # Left padding
-    text_y = right_y + right_height - 8 - 18  # Top padding + font size
+    text_y = right_y + right_height - 200 - 18  # Top padding + font size (moved down from 8 to 20)
 
     _draw_bold_text(c, text, text_x, text_y, font_name, 18, right_width - 16, text_color, shadow_color)  # 16 = left + right padding
 
@@ -542,6 +570,104 @@ def create_content_file(image_urls: List[str], scripts: List[str], output_filena
 
     c.save()
     return output_path
+
+
+async def create_main_content_test(
+    image_urls: List[str],
+    scripts: List[str],
+    font_path: Optional[str] = None,
+    story: str = "story_01",
+    background_urls: Optional[List[str]] = None,
+    allow_fallback: bool = True
+) -> bytes:
+    """
+    Tạo nội dung chính của cuốn sách dưới dạng PDF bytes (phiên bản test - không swapface).
+    Bao gồm các trang nội dung với hình ảnh và văn bản, nền được load từ assets.
+    Tự động remove background cho tất cả ảnh trước khi tạo PDF.
+
+    Args:
+        image_urls: Danh sách URL ảnh nhân vật (bị bỏ qua trong test mode).
+        scripts: Danh sách nội dung văn bản cho từng trang.
+        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại.
+        story: Tên story để load background phù hợp.
+        background_urls: (Tùy chọn) Danh sách URL background cho mỗi trang.
+        allow_fallback: Cho phép fallback sang background mặc định nếu không tìm thấy.
+
+    Returns:
+        Dữ liệu PDF của nội dung chính dưới dạng bytes.
+    """
+    if len(image_urls) != len(scripts):
+        raise ValueError("Số lượng ảnh và script phải bằng nhau.")
+    if len(image_urls) == 0:
+        raise ValueError("Phải có ít nhất một ảnh và một script.")
+
+    print("TEST MODE: Skipping face swap, using original character images")
+
+    # Sử dụng trực tiếp image URLs (không remove background)
+    processed_image_urls = list(image_urls)
+
+    # Load background images cho nội dung (required for each story)
+    if background_urls is None:
+        print(f"Loading content backgrounds for {len(scripts)} pages (story={story})...")
+        background_urls = get_content_backgrounds(len(scripts), story, allow_fallback)
+        print(f"✓ Loaded {len(background_urls)} content background URLs for story '{story}'")
+    else:
+        print(
+            f"Using provided content background list with {len(background_urls)} items for story={story}"
+        )
+
+    # Chuẩn bị font hiện đại
+    font_name = _register_unicode_font(font_path)
+
+    # Thiết lập trang nằm ngang A4
+    page_width, page_height = landscape(A4)
+    margin = 36  # 0.5 inch
+    gutter = 16  # khoảng cách giữa 2 nửa trang
+
+    # Tạo PDF trong memory
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    for idx, (script, background_url, processed_image_url) in enumerate(zip(scripts, background_urls, processed_image_urls)):
+        print(f"Creating content page {idx + 1}/{len(scripts)}...")
+
+        # Background
+        if background_url and background_url != "None":
+            try:
+                bg_img = Image.open(background_url)
+                # Resize to fit page while maintaining aspect ratio
+                bg_img.thumbnail((page_width, page_height), Image.Resampling.LANCZOS)
+
+                # Center the background
+                bg_width, bg_height = bg_img.size
+                x = (page_width - bg_width) / 2
+                y = (page_height - bg_height) / 2
+
+                c.drawImage(ImageReader(bg_img), x, y, width=bg_width, height=bg_height, mask='auto')
+            except Exception as e:
+                print(f"Warning: Could not load background {background_url}: {e}")
+
+        # Character bên trái
+        try:
+            pil_img = _download_image_as_pil(processed_image_url)
+            _draw_image_left_half(c, pil_img, page_width, page_height, margin, gutter)
+        except Exception as e:
+            print(f"Warning: Could not draw character for page {idx + 1}: {e}")
+
+        # Text bên phải
+        _draw_text_right_half(c, script, font_name, page_width, page_height, margin, gutter, background_url)
+
+        # Page number
+        c.setFont(font_name if font_name != "Helvetica" else "Helvetica", 10)
+        c.setFillGray(0.3)
+        c.drawRightString(page_width - margin, margin / 2, f"Page {idx + 1}")
+        c.setFillGray(0)
+
+        c.showPage()
+
+    c.save()
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 async def create_main_content(

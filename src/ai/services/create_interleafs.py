@@ -16,7 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from .swap_face import swap_face
+# from .swap_face import swap_face  # Import moved inside functions that need it
 
 
 def _find_usable_font_path(preferred_path: Optional[str] = None) -> Optional[str]:
@@ -370,6 +370,7 @@ async def create_interleafs(
         print(f"Processing interleaf page: {interleaf_id}")
 
         # Face swap character
+        from .swap_face import swap_face
         face_swap_result = await swap_face(
             face_image_url=image_url,
             body_image_url=str(character_path)
@@ -432,5 +433,180 @@ async def create_interleafs(
 
     processing_time = time.time() - start_time
     print(f"Interleaf creation completed in {processing_time:.2f} seconds")
+
+    return buffer.getvalue()
+
+
+async def create_interleafs_test(
+    category_id: str,
+    book_id: str,
+    interleaf_count: int,
+    name: str,
+    image_url: str,
+    font_path: Optional[str] = None
+) -> bytes:
+    """
+    Tạo các trang interleaf dưới dạng PDF bytes (phiên bản test - không swapface).
+    Mỗi interleaf có 2 trang.
+
+    Args:
+        category_id: ID category (2 chữ số)
+        book_id: ID book (2 chữ số)
+        interleaf_count: Số lượng interleaf cần tạo
+        name: Tên nhân vật để thay thế vào quotes
+        image_url: URL ảnh face (bị bỏ qua trong phiên bản test)
+        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại
+
+    Returns:
+        Dữ liệu PDF của tất cả interleaf pages dưới dạng bytes
+    """
+    start_time = time.time()
+
+    print(f"Creating {interleaf_count} interleaf(s) (TEST MODE - no swapface) for category {category_id}, book {book_id}")
+
+    # Load interleaf metadata
+    interleaf_metadata_path = Path("/app/assets/interleafs/interleaf_metadata.yaml")
+
+    # Nếu chưa có metadata, tạo mặc định
+    if not interleaf_metadata_path.exists():
+        print(f"Warning: Interleaf metadata not found at {interleaf_metadata_path}, using default paths")
+        # Sẽ xử lý trong vòng lặp dưới đây
+        has_metadata = False
+    else:
+        import yaml
+        with interleaf_metadata_path.open("r", encoding="utf-8") as f:
+            interleaf_data = yaml.safe_load(f)
+        has_metadata = True
+
+    # Collect all interleaf pages to process
+    all_interleaf_pages = []
+
+    for interleaf_idx in range(1, interleaf_count + 1):
+        interleaf_order = f"{interleaf_idx:02d}"
+
+        for page_num in ["01", "02"]:
+            # New format: XXYY(AA) where XX=category_id, YY=interleaf_order, AA=page_num
+            interleaf_id = f"{category_id}{interleaf_order}({page_num})"
+
+            if has_metadata:
+                page_metadata = interleaf_data.get("pages", {}).get(interleaf_id)
+                if not page_metadata:
+                    print(f"Warning: Interleaf metadata not found for ID: {interleaf_id}, skipping")
+                    continue
+
+                background_path = Path(f"/app/{page_metadata['background']}")
+                character_path = page_metadata['character']  # Use relative path like create_content
+                quote_file_path = Path(f"/app/{page_metadata['quote_file']}")
+            else:
+                # Default paths - use new format
+                background_path = Path(f"/app/assets/interleafs/backgrounds/background_{interleaf_id}.png")
+                character_path = f"assets/interleafs/characters/character_{interleaf_id}.png"  # Use relative path
+                quote_file_path = Path(f"/app/assets/interleafs/quotes/quote_{interleaf_id}.json")
+
+            # Validate file paths
+            if not background_path.exists():
+                print(f"Warning: Background file not found: {background_path}, skipping page {interleaf_id}")
+                continue
+            character_full_path = Path(f"/app/{character_path}")
+            if not character_full_path.exists():
+                print(f"Warning: Character file not found: {character_full_path}, skipping page {interleaf_id}")
+                continue
+            if not quote_file_path.exists():
+                print(f"Warning: Quote file not found: {quote_file_path}, skipping page {interleaf_id}")
+                continue
+
+            # Load quote content
+            try:
+                with quote_file_path.open("r", encoding="utf-8") as f:
+                    quote_data = json.load(f)
+
+                quote_content = quote_data.get("quote", "")
+                if not quote_content:
+                    print(f"Warning: Empty quote content for {interleaf_id}, skipping")
+                    continue
+
+                # Replace placeholders
+                quote_content = quote_content.replace("{character_name}", name).replace("{character_name}", name)
+
+                all_interleaf_pages.append({
+                    "interleaf_id": interleaf_id,
+                    "background_path": background_path,
+                    "character_path": character_path,
+                    "quote_content": quote_content
+                })
+
+            except Exception as e:
+                print(f"Error loading quote for {interleaf_id}: {e}, skipping")
+                continue
+
+    if not all_interleaf_pages:
+        raise ValueError("No valid interleaf pages found")
+
+    print(f"Processing {len(all_interleaf_pages)} interleaf pages")
+
+    # Process all pages
+    processed_pages = []
+
+    for page_data in all_interleaf_pages:
+        interleaf_id = page_data["interleaf_id"]
+        background_path = page_data["background_path"]
+        character_path = page_data["character_path"]
+        quote_content = page_data["quote_content"]
+
+        print(f"Processing interleaf page (TEST MODE): {interleaf_id}")
+
+        # SKIP FACE SWAP - use original character image directly
+        print(f"TEST MODE: Skipping face swap for {interleaf_id}, using original character image")
+        character_image_url = _convert_image_to_transparent_base64(str(character_path))
+
+        processed_pages.append({
+            "background_path": background_path,
+            "character_image_url": character_image_url,
+            "quote_content": quote_content
+        })
+
+    # Chuẩn bị font hiện đại
+    font_name = _register_unicode_font(font_path)
+
+    # Thiết lập trang nằm ngang A4
+    page_width, page_height = landscape(A4)
+    margin = 36  # 0.5 inch
+    gutter = 16  # khoảng cách giữa 2 nửa trang
+
+    # Tạo PDF trong memory
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    for idx, page_data in enumerate(processed_pages, start=1):
+        background_path = page_data["background_path"]
+        character_image_url = page_data["character_image_url"]
+        quote_content = page_data["quote_content"]
+
+        # Background
+        _draw_background(c, str(background_path), page_width, page_height)
+
+        # Character bên trái
+        try:
+            pil_character = _download_image_as_pil(character_image_url)
+            _draw_image_left_half(c, pil_character, page_width, page_height, margin, gutter)
+        except Exception as e:
+            print(f"Warning: Could not draw character for page {idx}: {e}")
+
+        # Quote bên phải
+        _draw_text_right_half(c, quote_content, font_name, page_width, page_height, margin, gutter, str(background_path))
+
+        # Page number
+        c.setFont(font_name if font_name != "Helvetica" else "Helvetica", 10)
+        c.setFillGray(0.3)
+        c.drawRightString(page_width - margin, margin / 2, f"Interleaf {idx}")
+        c.setFillGray(0)
+
+        c.showPage()
+
+    c.save()
+    buffer.seek(0)
+
+    processing_time = time.time() - start_time
+    print(f"Interleaf creation (TEST MODE) completed in {processing_time:.2f} seconds")
 
     return buffer.getvalue()

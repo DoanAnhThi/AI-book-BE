@@ -16,7 +16,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-from .swap_face import swap_face
+# from .swap_face import swap_face  # Import moved inside functions that need it
 
 
 def _find_usable_font_path(preferred_path: Optional[str] = None) -> Optional[str]:
@@ -309,6 +309,7 @@ async def create_cover(
 
     # Face swap character (sử dụng file path trực tiếp như create_content)
     print("Performing face swap...")
+    from .swap_face import swap_face
     face_swap_result = await swap_face(
         face_image_url=image_url,
         body_image_url=str(character_path)  # Sử dụng file path trực tiếp
@@ -402,5 +403,163 @@ async def create_cover(
 
     processing_time = time.time() - start_time
     print(f"Cover creation completed in {processing_time:.2f} seconds")
+
+    return buffer.getvalue()
+
+
+async def create_cover_test(
+    category_id: str,
+    book_id: str,
+    name: str,
+    image_url: str,
+    font_path: Optional[str] = None
+) -> bytes:
+    """
+    Tạo cover của cuốn sách dưới dạng PDF bytes (phiên bản test - không swapface).
+
+    Args:
+        category_id: ID category (2 chữ số)
+        book_id: ID book (2 chữ số)
+        name: Tên nhân vật để thay thế vào title
+        image_url: URL ảnh face (bị bỏ qua trong phiên bản test)
+        font_path: (Tùy chọn) Đường dẫn tới font TTF hiện đại
+
+    Returns:
+        Dữ liệu PDF của cover dưới dạng bytes
+    """
+    start_time = time.time()
+
+    # Tạo cover ID (4 chữ số: category + book)
+    cover_id = f"{category_id}{book_id}"
+
+    print(f"Creating cover (TEST MODE - no swapface) for ID: {cover_id}")
+
+    # Load cover metadata
+    covers_metadata_path = Path("/app/assets/covers/covers_metadata.yaml")
+
+    # Nếu chưa có metadata, tạo mặc định
+    if not covers_metadata_path.exists():
+        print(f"Warning: Cover metadata not found at {covers_metadata_path}, using default paths")
+
+        # Default paths for cover assets
+        background_path = Path(f"/app/assets/covers/backgrounds/background_{cover_id}.png")
+        character_path = Path(f"/app/assets/covers/characters/character_{cover_id}.png")
+        title_file_path = Path(f"/app/assets/covers/titles/title_{cover_id}.json")
+    else:
+        # Load from metadata (nếu có)
+        import yaml
+        with covers_metadata_path.open("r", encoding="utf-8") as f:
+            covers_data = yaml.safe_load(f)
+
+        cover_metadata = covers_data.get("covers", {}).get(cover_id)
+        if not cover_metadata:
+            raise ValueError(f"Cover metadata not found for ID: {cover_id}")
+
+        background_path = Path(f"/app/{cover_metadata['background']}")
+        character_path = cover_metadata['character']  # Use relative path like create_content
+        title_file_path = Path(f"/app/{cover_metadata['title_file']}")
+
+    # Validate file paths
+    if not background_path.exists():
+        raise FileNotFoundError(f"Background file not found: {background_path}")
+    character_full_path = Path(f"/app/{character_path}")
+    if not character_full_path.exists():
+        raise FileNotFoundError(f"Character file not found: {character_full_path}")
+    if not title_file_path.exists():
+        raise FileNotFoundError(f"Title file not found: {title_file_path}")
+
+    # Load title content
+    with title_file_path.open("r", encoding="utf-8") as f:
+        title_data = json.load(f)
+
+    title_template = title_data.get("title", "Book Title")
+    # Replace {character_name} placeholder with actual name
+    title = title_template.replace("{character_name}", name).replace("{Name}", name)
+
+    print(f"Loaded title: {title}")
+
+    # SKIP FACE SWAP - use original character image directly
+    print("TEST MODE: Skipping face swap, using original character image")
+    character_image_url = _convert_image_to_transparent_base64(str(character_path))
+
+    # Chuẩn bị font hiện đại
+    font_name = _register_unicode_font(font_path)
+
+    # Thiết lập trang nằm ngang A4
+    page_width, page_height = landscape(A4)
+    margin = 36  # 0.5 inch
+
+    # Tạo PDF trong memory
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    # Draw background
+    _draw_background(c, str(background_path), page_width, page_height)
+
+    # Draw character (centered)
+    try:
+        pil_character = _download_image_as_pil(character_image_url)
+        # For cover, place character in center-left area
+        char_max_width = page_width * 0.4  # 40% of page width
+        char_max_height = page_height - 2 * margin
+
+        # Resize character
+        char_ratio = pil_character.width / pil_character.height
+        if char_ratio > char_max_width / char_max_height:
+            new_width = char_max_width
+            new_height = char_max_width / char_ratio
+        else:
+            new_height = char_max_height
+            new_width = char_max_height * char_ratio
+
+        # Position character on left side
+        x = margin + (page_width * 0.4 - new_width) / 2
+        y = margin + (char_max_height - new_height) / 2
+
+        c.drawImage(ImageReader(pil_character), x, y, width=new_width, height=new_height, mask='auto')
+    except Exception as e:
+        print(f"Warning: Could not draw character: {e}")
+
+    # Draw title (centered on right side)
+    title_font_size = 48
+    c.setFont(font_name if font_name != "Helvetica" else "Helvetica-Bold", title_font_size)
+
+    # Simple title positioning - center right area
+    title_x = page_width * 0.6  # Start at 60% of page width
+    title_y = page_height / 2 - title_font_size / 2
+
+    # Word wrap title if too long
+    max_title_width = page_width * 0.35  # 35% of page width for title
+    title_lines = []
+    current_line = ""
+    words = title.split()
+
+    for word in words:
+        test_line = current_line + " " + word if current_line else word
+        if c.stringWidth(test_line, font_name if font_name != "Helvetica" else "Helvetica-Bold", title_font_size) > max_title_width:
+            if current_line:
+                title_lines.append(current_line)
+            current_line = word
+        else:
+            current_line = test_line
+
+    if current_line:
+        title_lines.append(current_line)
+
+    # Draw title lines
+    line_height = title_font_size * 1.2
+    start_y = page_height / 2 + (len(title_lines) - 1) * line_height / 2
+
+    for i, line in enumerate(title_lines):
+        line_width = c.stringWidth(line, font_name if font_name != "Helvetica" else "Helvetica-Bold", title_font_size)
+        x = title_x + (max_title_width - line_width) / 2  # Center within title area
+        y = start_y - i * line_height
+        c.drawString(x, y, line)
+
+    c.save()
+    buffer.seek(0)
+
+    processing_time = time.time() - start_time
+    print(f"Cover creation (TEST MODE) completed in {processing_time:.2f} seconds")
 
     return buffer.getvalue()
