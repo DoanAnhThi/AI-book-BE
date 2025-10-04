@@ -1,8 +1,50 @@
+# Utility to ensure transparent background on swapped images
+async def convert_image_to_transparent_base64(image_url: str) -> str:
+    try:
+        image = _load_image_from_source(image_url)
+
+        cleaned_data = []
+        for pixel in image.getdata():
+            r, g, b, a = pixel
+            if r < 10 and g < 10 and b < 10:
+                cleaned_data.append((r, g, b, 0))
+            else:
+                cleaned_data.append((r, g, b, a))
+
+        image.putdata(cleaned_data)
+
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        base64_image = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{base64_image}"
+
+    except Exception as e:
+        print(f"Warning: Failed to convert image to transparent base64: {e}")
+        return image_url
 import time
 import asyncio
 import json
+import base64
+import io
 import requests
 import yaml
+from PIL import Image
+
+
+def _load_image_from_source(image_source: str) -> Image.Image:
+    """Load image from a URL or data URL into a PIL Image."""
+    if image_source.startswith("data:image/"):
+        header, base64_data = image_source.split(",", 1)
+        image_bytes = base64.b64decode(base64_data)
+    else:
+        response = requests.get(image_source, timeout=60)
+        response.raise_for_status()
+        image_bytes = response.content
+
+    image = Image.open(io.BytesIO(image_bytes))
+    if image.mode not in ("RGBA", "LA"):
+        image = image.convert("RGBA")
+    return image
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -11,7 +53,6 @@ from src.ai.services.llm import gen_script  # Import hàm từ services
 from src.ai.services.gen_illustration_image import gen_illustration_image  # Import hàm xử lý image
 from src.ai.services.gen_avatar import gen_avatar  # Import hàm tạo cartoon image
 from src.ai.services.create_content import create_main_content
-from src.ai.services.remove_background import remove_background  # Import hàm remove background cho endpoint riêng
 from src.ai.services.get_page_id import get_page_id  # Import hàm get_page_id từ services
 from src.ai.services.swap_face import swap_face  # Import hàm swap_face từ services
 from src.ai.services.create_cover import create_cover  # Import hàm create_cover từ services
@@ -254,11 +295,8 @@ async def create_content_endpoint(request: CreateBookRequest):
                     # Fallback to original character URL
                     swapped_image_url = f"http://localhost:8000/{character_path}"
 
-                # Remove background
-                try:
-                    processed_image_data = await remove_background(image_url=swapped_image_url)
-                except:
-                    processed_image_data = swapped_image_url
+                # Ensure the swapped image has transparent background (convert to base64 data URL)
+                processed_image_data = await convert_image_to_transparent_base64(swapped_image_url)
 
                 return page_content, processed_image_data
 

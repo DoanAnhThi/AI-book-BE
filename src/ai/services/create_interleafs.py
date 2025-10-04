@@ -272,8 +272,8 @@ async def create_interleafs(
                 quote_file_path = Path(f"/app/{page_metadata['quote_file']}")
             else:
                 # Default paths - use new format
-                background_path = Path(f"/app/assets/interleafs/backgrounds/background_{interleaf_id}.jpeg")
-                character_path = f"assets/interleafs/characters/character_{interleaf_id}.jpeg"  # Use relative path
+                background_path = Path(f"/app/assets/interleafs/backgrounds/background_{interleaf_id}.png")
+                character_path = f"assets/interleafs/characters/character_{interleaf_id}.png"  # Use relative path
                 quote_file_path = Path(f"/app/assets/interleafs/quotes/quote_{interleaf_id}.json")
 
             # Validate file paths

@@ -227,8 +227,8 @@ async def create_cover(
         print(f"Warning: Cover metadata not found at {covers_metadata_path}, using default paths")
 
         # Default paths for cover assets
-        background_path = Path(f"/app/assets/covers/backgrounds/background_{cover_id}.jpeg")
-        character_path = Path(f"/app/assets/covers/characters/character_{cover_id}.jpeg")
+        background_path = Path(f"/app/assets/covers/backgrounds/background_{cover_id}.png")
+        character_path = Path(f"/app/assets/covers/characters/character_{cover_id}.png")
         title_file_path = Path(f"/app/assets/covers/titles/title_{cover_id}.json")
     else:
         # Load from metadata (nếu có)

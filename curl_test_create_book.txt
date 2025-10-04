@@ -11,7 +11,7 @@ curl -X POST "http://localhost:8000/api/v1/create-book/" \
     \"gender\": \"male\",
     \"language\": \"vi\",
     \"name\": \"Nguyễn Văn A\",
-    \"image_url\": \"https://assets-us-01.kc-usercontent.com/5cb25086-82d2-4c89-94f0-8450813a0fd3/0c3fcefb-bc28-4af6-985e-0c3b499ae832/Elon_Musk_Royal_Society.jpeg?fm=jpeg&auto=format\"
+    \"image_url\": \"https://assets-us-01.kc-usercontent.com/5cb25086-82d2-4c89-94f0-8450813a0fd3/0c3fcefb-bc28-4af6-985e-0c3b499ae832/Elon_Musk_Royal_Society.png?fm=png&auto=format\"
   }" \
   --max-time 600 \
   -o book_test.pdf

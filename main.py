@@ -27,11 +27,11 @@ app = FastAPI(
 
 # Mount static files cho thư mục images
 '''
-FE request: GET /images/career.jpeg
+FE request: GET /images/career.png
            ↓
 FastAPI thấy "/images" → gọi StaticFiles(directory="test/test_response/image")
            ↓
-Tìm file: test/test_response/image/career.jpeg ✅
+Tìm file: test/test_response/image/career.png ✅
 '''
 app.mount("/images", StaticFiles(directory="test/test_response/image"), name="images")
 

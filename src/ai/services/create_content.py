@@ -14,7 +14,6 @@ from reportlab.platypus import Paragraph, Frame
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from .remove_background import remove_background
 
 
 
@@ -85,7 +84,16 @@ def _download_image_as_pil(url: str) -> Image.Image:
         image_stream = io.BytesIO(response.content)
         img = Image.open(image_stream)
 
-    if img.mode not in ("RGB", "RGBA"):
+    # Preserve transparency whenever possible
+    if img.mode == "P":
+        # Paletted images may include transparency info
+        if "transparency" in img.info:
+            img = img.convert("RGBA")
+        else:
+            img = img.convert("RGB")
+    elif img.mode == "LA":
+        img = img.convert("RGBA")
+    elif img.mode not in ("RGB", "RGBA"):
         img = img.convert("RGB")
     return img
 
@@ -360,7 +368,13 @@ def _draw_image_left_half(c: canvas.Canvas, pil_img: Image.Image, page_width: fl
     draw_x = left_x + (left_width - draw_w) / 2
     draw_y = left_y + (left_height - draw_h) / 2
 
-    img_reader = ImageReader(pil_img)
+    if pil_img.mode == "RGBA":
+        img_buffer = io.BytesIO()
+        pil_img.save(img_buffer, format="PNG")
+        img_buffer.seek(0)
+        img_reader = ImageReader(img_buffer)
+    else:
+        img_reader = ImageReader(pil_img)
     c.drawImage(img_reader, draw_x, draw_y, width=draw_w, height=draw_h, preserveAspectRatio=True, mask="auto")
 
 
@@ -555,25 +569,8 @@ async def create_main_content(
     if len(image_urls) == 0:
         raise ValueError("Phải có ít nhất một ảnh và một script.")
 
-    # Xử lý remove background cho tất cả ảnh
-    processed_image_urls = []
-    for idx, img_url in enumerate(image_urls, start=1):
-        try:
-            print(f"Processing remove background for image {idx}/{len(image_urls)}")
-            processed_data = await remove_background(image_url=img_url)
-
-            if processed_data:
-                processed_image_urls.append(processed_data)
-                print(f"Successfully processed image {idx}")
-            else:
-                # Nếu không thể remove background, sử dụng ảnh gốc
-                processed_image_urls.append(img_url)
-                print(f"Failed to remove background for image {idx}, using original")
-
-        except Exception as rb_error:
-            print(f"Error removing background for image {idx}: {str(rb_error)}")
-            # Sử dụng ảnh gốc nếu có lỗi
-            processed_image_urls.append(img_url)
+    # Sử dụng trực tiếp image URLs (không remove background)
+    processed_image_urls = list(image_urls)
 
     # Load background images cho nội dung (required for each story)
     if background_urls is None:
