@@ -195,7 +195,7 @@ async def test_content_endpoint(request: TestContentRequest):
         import yaml
         import json
 
-        BASE_DIR = Path(__file__).resolve().parents[3]
+        BASE_DIR = Path(__file__).resolve().parents[2]
         catalog_path = BASE_DIR / "assets" / "interiors" / "pages_metadata.yaml"
 
         with catalog_path.open("r", encoding="utf-8") as f:
@@ -208,7 +208,7 @@ async def test_content_endpoint(request: TestContentRequest):
             # Find all pages for this story (assuming 2 pages per story)
             for page_id in ["01", "02"]:
                 try:
-                    page_key = f"{request.category_id}{request.book_id}{story_id}{page_id}"
+                    page_key = f"{request.category_id}{request.book_id}{story_id}({page_id})"
                     all_pages.append(page_key)
                 except Exception:
                     # Skip if page doesn't exist
